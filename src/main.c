@@ -5,6 +5,7 @@
 #include "entis.h"
 #include "window.h"
 #include "color.h"
+#include "primitives.h"
 
 int main(int argc, char *argv[])
 {
@@ -33,8 +34,13 @@ int main(int argc, char *argv[])
   values[0] = entis_get_color_value(entis_palette_get_color(palette, 0));
   entis_window win = entis_create_window("Hello World", 0, 0, 500, 500, XCB_CW_BACK_PIXEL, values);
   entis_flush();
+  entis_set_color_int(&win, colors[5]);
+  /* entis_point(&win, 100, 100); */
+  entis_fill_rectangle(&win, 10, 10, 50, 25);
+  entis_display_window(&win);
+  /* entis_flush(); */
   sleep(1);
-  entis_destroy_window(win);
+  entis_destroy_window(&win);
   entis_term();
   return 0;
 }
