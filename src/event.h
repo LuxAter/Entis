@@ -5,40 +5,40 @@
 #include <xcb/xcb.h>
 
 enum EventType {
-  ENTIS_NO_EVENT = 0,
-  ENTIS_KEY_PRESS = 1,
-  ENTIS_KEY_RELEASE = 2,
-  ENTIS_BUTTON_PRESS = 3,
-  ENTIS_BUTTON_RELEASE = 4,
-  ENTIS_MOTION_NOTIFY = 5,
-  ENTIS_ENTER_NOTIFY = 6,
-  ENTIS_LEAVE_NOTIFY = 7,
-  ENTIS_FOCUS_IN = 8,
-  ENTIS_FOCUS_OUT = 9,
-  ENTIS_KEYMAP_NOTIFY = 10,
-  ENTIS_EXPOSE = 11,
-  ENTIS_GRAPHICS_EXPOSURE = 12,
-  ENTIS_NO_EXPOSURE = 13,
-  ENTIS_VISIBILITY_NOTIFY = 14,
-  ENTIS_CREATE_NOTIFY = 15,
-  ENTIS_DESTROY_NOTIFY = 16,
-  ENTIS_UNMAP_NOTIFY = 17,
-  ENTIS_MAP_NOTIFY = 18,
-  ENTIS_MAP_REQUEST = 19,
-  ENTIS_REPARENT_NOTIFY = 20,
-  ENTIS_CONFIGURE_NOTIFY = 21,
-  ENTIS_CONFIGURE_REQUEST = 22,
-  ENTIS_GRAVITY_NOTIFY = 23,
-  ENTIS_RESIZE_REQUEST = 24,
-  ENTIS_CIRCULATE_NOTIFY = 25,
-  ENTIS_CIRCULATE_REQUEST = 26,
-  ENTIS_PROPERTY_NOTIFY = 27,
-  ENTIS_SELECTION_CLEAR = 28,
-  ENTIS_SELECTION_REQUEST = 29,
-  ENTIS_SELECTION_NOTIFY = 30,
-  ENTIS_CLIENT_MESSAGE = 31,
-  ENTIS_MAPPING_NOTIFY = 32,
-  ENTIS_GE_GENERIC = 33
+  ENTIS_NO_EVENT = (1lu << 0),
+  ENTIS_KEY_PRESS = (1lu << 1),
+  ENTIS_KEY_RELEASE = (1lu << 2),
+  ENTIS_BUTTON_PRESS = (1lu << 3),
+  ENTIS_BUTTON_RELEASE = (1lu << 4),
+  ENTIS_MOTION_NOTIFY = (1lu << 5),
+  ENTIS_ENTER_NOTIFY = (1lu << 6),
+  ENTIS_LEAVE_NOTIFY = (1lu << 7),
+  ENTIS_FOCUS_IN = (1lu << 8),
+  ENTIS_FOCUS_OUT = (1lu << 9),
+  ENTIS_KEYMAP_NOTIFY = (1lu << 10),
+  ENTIS_EXPOSE = (1lu << 11),
+  ENTIS_GRAPHICS_EXPOSURE = (1lu << 12),
+  ENTIS_NO_EXPOSURE = (1lu << 13),
+  ENTIS_VISIBILITY_NOTIFY = (1lu << 14),
+  ENTIS_CREATE_NOTIFY = (1lu << 15),
+  ENTIS_DESTROY_NOTIFY = (1lu << 16),
+  ENTIS_UNMAP_NOTIFY = (1lu << 17),
+  ENTIS_MAP_NOTIFY = (1lu << 18),
+  ENTIS_MAP_REQUEST = (1lu << 19),
+  ENTIS_REPARENT_NOTIFY = (1lu << 20),
+  ENTIS_CONFIGURE_NOTIFY = (1lu << 21),
+  ENTIS_CONFIGURE_REQUEST = (1lu << 22),
+  ENTIS_GRAVITY_NOTIFY = (1lu << 23),
+  ENTIS_RESIZE_REQUEST = (1lu << 24),
+  ENTIS_CIRCULATE_NOTIFY = (1lu << 25),
+  ENTIS_CIRCULATE_REQUEST = (1lu << 26),
+  ENTIS_PROPERTY_NOTIFY = (1lu << 27),
+  ENTIS_SELECTION_CLEAR = (1lu << 28),
+  ENTIS_SELECTION_REQUEST = (1lu << 29),
+  ENTIS_SELECTION_NOTIFY = (1lu << 30),
+  ENTIS_CLIENT_MESSAGE = (1lu << 31),
+  ENTIS_MAPPING_NOTIFY = (1lu << 32),
+  ENTIS_GE_GENERIC = (1lu << 33)
 };
 
 typedef struct entis_key_event {
@@ -81,13 +81,13 @@ typedef struct entis_focus_event {
 typedef struct entis_expose_event {
   enum EventType type;
   uint16_t x, y;
-  uint16_t w, h;
+  uint16_t width, height;
   uint16_t count;
 } entis_expose_event;
 typedef struct entis_graphics_expose_event {
   enum EventType type;
   uint16_t x, y;
-  uint16_t w, h;
+  uint16_t width, height;
   uint16_t major, minor;
   uint16_t count;
 } entis_graphics_expose_event;
@@ -102,7 +102,7 @@ typedef struct entis_visibility_event {
 typedef struct entis_create_event {
   enum EventType type;
   uint16_t x, y;
-  uint16_t w, h;
+  uint16_t width, height;
   uint16_t border_width;
 } entis_create_event;
 typedef struct entis_destroy_event {
@@ -130,7 +130,7 @@ typedef struct entis_configure_event {
   enum EventType type;
   xcb_window_t window;
   uint16_t x, y;
-  uint16_t w, h;
+  uint16_t width, height;
   uint16_t border_width;
 } entis_configure_event;
 typedef struct entis_gravity_event {
@@ -141,13 +141,13 @@ typedef struct entis_gravity_event {
 typedef struct entis_resize_event {
   enum EventType type;
   xcb_window_t window;
-  int16_t w, h;
+  int16_t width, height;
 } entis_resize_event;
 typedef struct entis_configure_request_event {
   enum EventType type;
   xcb_window_t window, sibling;
   uint16_t x, y;
-  uint16_t w, h;
+  uint16_t width, height;
   uint16_t border_width;
   uint16_t value_mask;
 } entis_configure_request_event;

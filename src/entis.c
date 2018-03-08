@@ -6,6 +6,7 @@
 #include <xcb/xcb.h>
 
 #include "entis.h"
+#include "event.h"
 
 static xcb_connection_t* connection_;
 static xcb_screen_t* screen_;
@@ -125,7 +126,7 @@ void entis_flush() { xcb_flush(connection_); }
 xcb_connection_t* entis_get_connection() { return connection_; }
 xcb_screen_t* entis_get_screen() { return screen_; }
 xcb_window_t entis_get_window() { return window_; }
-/* xcb_pixmap_t entis_get_pixmap() { return pixmap_; } */
+xcb_pixmap_t entis_get_pixmap() { return pixmap_; }
 xcb_gcontext_t entis_get_gcontext() { return gcontext_; }
 
 void entis_set_color(uint32_t color) {
@@ -173,6 +174,20 @@ void entis_set_background_drgb(double r, double g, double b) {
                        0x000100 * (uint32_t)(256 * g) + (uint32_t)(256 * b));
 }
 
+void entis_reload_pixmap(uint32_t w, uint32_t h) {
+  xcb_free_pixmap(connection_, pixmap_);
+  xcb_void_cookie_t cookie = xcb_create_pixmap(connection_, screen_->root_depth,
+                                               pixmap_, screen_->root, w, h);
+  xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr, "[ERROR %u] Failed to resize xcb pixmap\n",
+            error_check->error_code);
+  }
+  free(error_check);
+  width_ = w;
+  height_ = h;
+}
+
 void entis_point(uint16_t x, uint16_t y) {
   xcb_point_t points[1] = {{x, y}};
   xcb_poly_point(entis_get_connection(), XCB_COORD_MODE_ORIGIN, pixmap_,
@@ -198,66 +213,110 @@ void entis_clear() {
                           (xcb_rectangle_t[]){{0, 0, width_, height_}});
 }
 
-xcb_generic_event_t* entis_wait_event() {
+EntisEvent entis_wait_event() {
   entis_copy_pixmap();
   entis_flush();
-  xcb_generic_event_t* event = xcb_wait_for_event(connection_);
+  EntisEvent event = entis_event_wait_event();
   while (true) {
-    switch (event->response_type & ~0x80) {
-      case XCB_EXPOSE: {
+    switch (event.type) {
+      case ENTIS_EXPOSE: {
         entis_copy_pixmap();
         entis_flush();
         break;
       }
-      case XCB_NO_EXPOSURE: {
-        entis_copy_pixmap();
-        entis_flush();
+      case ENTIS_REPARENT_NOTIFY: {
         break;
       }
-      case XCB_REPARENT_NOTIFY: {
+      case ENTIS_CONFIGURE_NOTIFY: {
+        if (event.configure.width != width_ ||
+            event.configure.height != height_) {
+          entis_reload_pixmap(event.configure.width, event.configure.height);
+        }
         break;
       }
-      case XCB_CONFIGURE_NOTIFY: {
-        xcb_configure_notify_event_t* ev = (xcb_configure_notify_event_t*)event;
+      case ENTIS_MAP_NOTIFY: {
         break;
       }
-      case XCB_MAP_NOTIFY: {
+      case ENTIS_NO_EXPOSURE: {
         break;
       }
-      default: {
-        printf("Unknown event: %" PRIu8 "\n", event->response_type);
-        return event;
-      }
+      default: { return event; }
     }
-    free(event);
-    event = xcb_wait_for_event(connection_);
+    event = entis_event_wait_event();
   }
   return event;
-  /* while ((event->response_type & ~0x80) == XCB_EXPOSE || */
-  /*        (event->response_type & ~0x80) == XCB_NO_EXPOSURE ||  */
-  /*        event->response_type & _0x80) == XCB_CONFI { */
-  /*   #<{(| bool looping = true; |)}># */
-  /*   #<{(| while (looping) { |)}># */
-  /*   switch (event->response_type & ~0x80) { */
-  /*     case XCB_EXPOSE: */
-  /*       entis_copy_pixmap(); */
-  /*       entis_flush(); */
-  /*       break; */
-  /*       case  */
-  /*     default: */
-  /*       break; */
-  /*   } */
-  /*   #<{(| draw the rectangles |)}># */
-  /*   #<{(| xcb_rectangle_t rectangles[] = {{10, 50, 40, 20}, {80, 50, 10,
-   * 40}}; |)}># */
-  /*   #<{(| xcb_poly_rectangle(connection_, window_, gcontext_, 2, rectangles);
-   * |)}># */
-  /*   #<{(| entis_flush(); |)}># */
-  /*   entis_copy_pixmap(); */
-  /*   entis_flush(); */
-  /*   free(event); */
-  /*   event = xcb_wait_for_event(connection_); */
-  /* } */
-  /* printf("Unknown event: %" PRIu8 "\n", event->response_type); */
-  /* return event; */
+}
+
+EntisEvent entis_poll_event() {
+  entis_copy_pixmap();
+  entis_flush();
+  EntisEvent event = entis_event_poll_event();
+  while (true) {
+    switch (event.type) {
+      case ENTIS_EXPOSE: {
+        entis_copy_pixmap();
+        entis_flush();
+        break;
+      }
+      case ENTIS_REPARENT_NOTIFY: {
+        break;
+      }
+      case ENTIS_CONFIGURE_NOTIFY: {
+        if (event.configure.width != width_ ||
+            event.configure.height != height_) {
+          entis_reload_pixmap(event.configure.width, event.configure.height);
+        }
+        break;
+      }
+      case ENTIS_MAP_NOTIFY: {
+        break;
+      }
+      case ENTIS_NO_EXPOSURE: {
+        return (EntisEvent){ENTIS_NO_EVENT};
+        break;
+      }
+      default: { return event; }
+    }
+    event = entis_event_poll_event();
+  }
+  return event;
+}
+
+EntisEvent entis_wait_event_type(uint32_t type) {
+  EntisEvent event = entis_wait_event();
+  while ((event.type & type) == false) {
+    event = entis_wait_event();
+  }
+  return event;
+}
+
+EntisEvent entis_poll_event_type(uint32_t type) {
+  EntisEvent event = entis_poll_event();
+  while ((event.type & type) == false && event.type != ENTIS_NO_EVENT) {
+    event = entis_poll_event();
+  }
+  return event;
+}
+
+entis_key_event entis_wait_key() {
+  return entis_wait_event_type(ENTIS_KEY_PRESS | ENTIS_KEY_RELEASE).key;
+}
+entis_key_event entis_poll_key() {
+  return entis_poll_event_type(ENTIS_KEY_PRESS | ENTIS_KEY_RELEASE).key;
+}
+
+entis_button_event entis_wait_button() {
+  return entis_wait_event_type(ENTIS_BUTTON_PRESS | ENTIS_BUTTON_RELEASE)
+      .button;
+}
+entis_button_event entis_poll_button() {
+  return entis_poll_event_type(ENTIS_BUTTON_PRESS | ENTIS_BUTTON_RELEASE)
+      .button;
+}
+
+void entis_clear_events() {
+  EntisEvent event = entis_poll_event();
+  while (event.type != ENTIS_NO_EVENT && event.type != ENTIS_NO_EXPOSURE) {
+    event = entis_poll_event();
+  }
 }

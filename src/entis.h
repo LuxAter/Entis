@@ -28,13 +28,28 @@ void entis_set_background(uint32_t color);
 void entis_set_background_rgb(uint32_t r, uint32_t g, uint32_t b);
 void entis_set_background_drgb(double r, double g, double b);
 
+void entis_reload_pixmap(uint32_t w, uint32_t h);
+
 void entis_copy_pixmap();
 void entis_clear();
 
 void entis_point(uint16_t x, uint16_t y);
 void entis_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 
-xcb_generic_event_t* entis_wait_event();
+EntisEvent entis_wait_event();
+EntisEvent entis_poll_event();
+
+EntisEvent entis_wait_event_type(uint32_t type);
+EntisEvent entis_poll_event_type(uint32_t type);
+
+entis_key_event entis_wait_key();
+entis_key_event entis_poll_key();
+
+entis_button_event entis_wait_button();
+entis_button_event entis_poll_button();
+
+
+void entis_clear_events();
 
 #endif  // ENTIS_ENTIS_H_
 

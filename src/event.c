@@ -13,9 +13,16 @@ EntisEvent entis_event_wait_event() {
   free(event);
   return ret;
 }
-EntisEvent entsi_event_poll_event() {
-  EntisEvent event;
-  return event;
+EntisEvent entis_event_poll_event() {
+  EntisEvent ret;
+  xcb_generic_event_t* event = xcb_poll_for_event(entis_get_connection());
+  if(event != NULL){
+    ret = entis_event_parse_event(event);
+    free(event);
+  }else{
+    ret.type = ENTIS_NO_EVENT;
+  }
+  return ret;
 }
 enum EventType entis_event_parse_type(xcb_generic_event_t* event) {
   switch (event->response_type & ~0x80) {
@@ -353,14 +360,15 @@ entis_selection_request_event entis_event_parse_selection_request(
         type,       ev->owner,    ev->requestor, ev->selection,
         ev->target, ev->property, ev->time};
   } else {
-    return(entis_selection_request_event){ENTIS_NO_EVENT, 0, 0, 0, 0, 0, 0};
+    return (entis_selection_request_event){ENTIS_NO_EVENT, 0, 0, 0, 0, 0, 0};
   }
 }
 entis_mapping_event entis_event_parse_mapping(xcb_generic_event_t* event,
                                               enum EventType type) {
   if (type == ENTIS_MAPPING_NOTIFY) {
     xcb_mapping_notify_event_t* ev = (xcb_mapping_notify_event_t*)event;
-    return (entis_mapping_event){type, ev->request, ev->first_keycode, ev->count};
+    return (entis_mapping_event){type, ev->request, ev->first_keycode,
+                                 ev->count};
   } else {
     return (entis_mapping_event){ENTIS_NO_EVENT, 0, 0, 0};
   }
@@ -380,88 +388,97 @@ EntisEvent entis_event_parse_event(xcb_generic_event_t* event) {
       ret.button = entis_event_parse_button(event, ENTIS_BUTTON_PRESS);
       break;
     case ENTIS_BUTTON_RELEASE:
-      ret.key = entis_event_parse_key(event, ENTIS_BUTTON_RELEASE);
+      ret.button = entis_event_parse_button(event, ENTIS_BUTTON_RELEASE);
       break;
     case ENTIS_MOTION_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_MOTION_NOTIFY);
+      ret.motion = entis_event_parse_motion(event, ENTIS_MOTION_NOTIFY);
       break;
     case ENTIS_ENTER_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_ENTER_NOTIFY);
+      ret.crossing = entis_event_parse_crossing(event, ENTIS_ENTER_NOTIFY);
       break;
     case ENTIS_LEAVE_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_LEAVE_NOTIFY);
+      ret.crossing = entis_event_parse_crossing(event, ENTIS_LEAVE_NOTIFY);
       break;
     case ENTIS_FOCUS_IN:
-      ret.key = entis_event_parse_key(event, ENTIS_FOCUS_IN);
+      ret.focus = entis_event_parse_focus(event, ENTIS_FOCUS_IN);
       break;
     case ENTIS_FOCUS_OUT:
-      ret.key = entis_event_parse_key(event, ENTIS_FOCUS_OUT);
+      ret.focus = entis_event_parse_focus(event, ENTIS_FOCUS_OUT);
       break;
     case ENTIS_KEYMAP_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_KEYMAP_NOTIFY);
+      /* ret.keymap = entis_event_parse_keymap(event, ENTIS_KEYMAP_NOTIFY); */
       break;
     case ENTIS_EXPOSE:
-      ret.key = entis_event_parse_key(event, ENTIS_EXPOSE);
+      ret.expose = entis_event_parse_expose(event, ENTIS_EXPOSE);
       break;
     case ENTIS_GRAPHICS_EXPOSURE:
-      ret.key = entis_event_parse_key(event, ENTIS_GRAPHICS_EXPOSURE);
+      ret.graphics_expose =
+          entis_event_parse_graphics_expose(event, ENTIS_GRAPHICS_EXPOSURE);
       break;
     case ENTIS_NO_EXPOSURE:
-      ret.key = entis_event_parse_key(event, ENTIS_NO_EXPOSURE);
+      ret.no_expose = entis_event_parse_no_expose(event, ENTIS_NO_EXPOSURE);
       break;
     case ENTIS_VISIBILITY_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_VISIBILITY_NOTIFY);
+      ret.visibility =
+          entis_event_parse_visibility(event, ENTIS_VISIBILITY_NOTIFY);
       break;
     case ENTIS_CREATE_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_CREATE_NOTIFY);
+      ret.create = entis_event_parse_create(event, ENTIS_CREATE_NOTIFY);
       break;
     case ENTIS_DESTROY_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_DESTROY_NOTIFY);
+      ret.destroy = entis_event_parse_destroy(event, ENTIS_DESTROY_NOTIFY);
       break;
     case ENTIS_UNMAP_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_UNMAP_NOTIFY);
+      ret.unmap = entis_event_parse_unmap(event, ENTIS_UNMAP_NOTIFY);
       break;
     case ENTIS_MAP_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_MAP_NOTIFY);
+      ret.map = entis_event_parse_map(event, ENTIS_MAP_NOTIFY);
       break;
     case ENTIS_MAP_REQUEST:
-      ret.key = entis_event_parse_key(event, ENTIS_MAP_REQUEST);
+      ret.map_request = entis_event_parse_map_request(event, ENTIS_MAP_REQUEST);
       break;
     case ENTIS_REPARENT_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_REPARENT_NOTIFY);
+      ret.reparent = entis_event_parse_reparent(event, ENTIS_REPARENT_NOTIFY);
       break;
     case ENTIS_CONFIGURE_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_CONFIGURE_NOTIFY);
+      ret.configure =
+          entis_event_parse_configure(event, ENTIS_CONFIGURE_NOTIFY);
       break;
     case ENTIS_CONFIGURE_REQUEST:
-      ret.key = entis_event_parse_key(event, ENTIS_CONFIGURE_REQUEST);
+      ret.configure_request =
+          entis_event_parse_configure_request(event, ENTIS_CONFIGURE_REQUEST);
       break;
     case ENTIS_GRAVITY_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_GRAVITY_NOTIFY);
+      ret.gravity = entis_event_parse_gravity(event, ENTIS_GRAVITY_NOTIFY);
       break;
     case ENTIS_RESIZE_REQUEST:
-      ret.key = entis_event_parse_key(event, ENTIS_RESIZE_REQUEST);
+      ret.resize = entis_event_parse_resize(event, ENTIS_RESIZE_REQUEST);
       break;
     case ENTIS_CIRCULATE_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_CIRCULATE_NOTIFY);
+      ret.circulate =
+          entis_event_parse_circulate(event, ENTIS_CIRCULATE_NOTIFY);
       break;
     case ENTIS_CIRCULATE_REQUEST:
-      ret.key = entis_event_parse_key(event, ENTIS_CIRCULATE_REQUEST);
+      ret.circulate_request =
+          entis_event_parse_circulate_request(event, ENTIS_CIRCULATE_REQUEST);
       break;
     case ENTIS_PROPERTY_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_PROPERTY_NOTIFY);
+      ret.property = entis_event_parse_property(event, ENTIS_PROPERTY_NOTIFY);
       break;
     case ENTIS_SELECTION_CLEAR:
-      ret.key = entis_event_parse_key(event, ENTIS_SELECTION_CLEAR);
+      ret.selection_clear =
+          entis_event_parse_selection_clear(event, ENTIS_SELECTION_CLEAR);
       break;
     case ENTIS_SELECTION_REQUEST:
-      ret.key = entis_event_parse_key(event, ENTIS_SELECTION_REQUEST);
+      ret.selection_request =
+          entis_event_parse_selection_request(event, ENTIS_SELECTION_REQUEST);
       break;
     case ENTIS_SELECTION_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_SELECTION_NOTIFY);
+      ret.selection =
+          entis_event_parse_selection(event, ENTIS_SELECTION_NOTIFY);
       break;
     case ENTIS_MAPPING_NOTIFY:
-      ret.key = entis_event_parse_key(event, ENTIS_MAPPING_NOTIFY);
+      ret.mapping = entis_event_parse_mapping(event, ENTIS_MAPPING_NOTIFY);
       break;
     default:
       ret.type = ENTIS_NO_EVENT;

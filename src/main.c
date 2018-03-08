@@ -14,10 +14,11 @@ int main(int argc, char* argv[]) {
   entis_set_color(ENTIS_WHITE);
   entis_flush();
   entis_point(100, 100);
-  EntisEvent event = entis_event_wait_event();
-  while (event.type != ENTIS_BUTTON_RELEASE) {
-    printf("TYPE: %d\n", event.type);
-    event = entis_event_wait_event();
+  entis_clear_events();
+  entis_button_event event = entis_wait_button();
+  while (event.x > 100 || event.y > 100) {
+    printf("BUTTON:  x: %u, y: %u\n", event.x, event.y);
+    event = entis_wait_button();
   }
   /* xcb_generic_event_t* event; */
   /* while(true){ */
