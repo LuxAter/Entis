@@ -1,0 +1,279 @@
+#ifndef ENTIS_EVENT_H_
+#define ENTIS_EVENT_H_
+
+#include <stdbool.h>
+#include <xcb/xcb.h>
+
+enum EventType {
+  ENTIS_NO_EVENT = 0,
+  ENTIS_KEY_PRESS = 1,
+  ENTIS_KEY_RELEASE = 2,
+  ENTIS_BUTTON_PRESS = 3,
+  ENTIS_BUTTON_RELEASE = 4,
+  ENTIS_MOTION_NOTIFY = 5,
+  ENTIS_ENTER_NOTIFY = 6,
+  ENTIS_LEAVE_NOTIFY = 7,
+  ENTIS_FOCUS_IN = 8,
+  ENTIS_FOCUS_OUT = 9,
+  ENTIS_KEYMAP_NOTIFY = 10,
+  ENTIS_EXPOSE = 11,
+  ENTIS_GRAPHICS_EXPOSURE = 12,
+  ENTIS_NO_EXPOSURE = 13,
+  ENTIS_VISIBILITY_NOTIFY = 14,
+  ENTIS_CREATE_NOTIFY = 15,
+  ENTIS_DESTROY_NOTIFY = 16,
+  ENTIS_UNMAP_NOTIFY = 17,
+  ENTIS_MAP_NOTIFY = 18,
+  ENTIS_MAP_REQUEST = 19,
+  ENTIS_REPARENT_NOTIFY = 20,
+  ENTIS_CONFIGURE_NOTIFY = 21,
+  ENTIS_CONFIGURE_REQUEST = 22,
+  ENTIS_GRAVITY_NOTIFY = 23,
+  ENTIS_RESIZE_REQUEST = 24,
+  ENTIS_CIRCULATE_NOTIFY = 25,
+  ENTIS_CIRCULATE_REQUEST = 26,
+  ENTIS_PROPERTY_NOTIFY = 27,
+  ENTIS_SELECTION_CLEAR = 28,
+  ENTIS_SELECTION_REQUEST = 29,
+  ENTIS_SELECTION_NOTIFY = 30,
+  ENTIS_CLIENT_MESSAGE = 31,
+  ENTIS_MAPPING_NOTIFY = 32,
+  ENTIS_GE_GENERIC = 33
+};
+
+typedef struct entis_key_event {
+  enum EventType type;
+  uint32_t time;
+  int16_t x, y;
+  int16_t root_x, root_y;
+  uint16_t state;
+  uint8_t keycode;
+} entis_key_event;
+typedef struct entis_button_event {
+  enum EventType type;
+  uint32_t time;
+  int16_t x, y;
+  int16_t root_x, root_y;
+  uint16_t state;
+  uint8_t button;
+} entis_button_event;
+typedef struct entis_motion_event {
+  enum EventType type;
+  uint32_t time;
+  int16_t x, y;
+  int16_t root_x, root_y;
+  uint16_t state;
+  uint8_t detail;
+} entis_motion_event;
+typedef struct entis_crossing_event {
+  enum EventType type;
+  uint32_t time;
+  int16_t x, y;
+  int16_t root_x, root_y;
+  uint16_t state;
+  uint8_t button;
+} entis_crossing_event;
+typedef struct entis_focus_event {
+  enum EventType type;
+  uint8_t mode;
+  uint8_t detail;
+} entis_focus_event;
+typedef struct entis_expose_event {
+  enum EventType type;
+  uint16_t x, y;
+  uint16_t w, h;
+  uint16_t count;
+} entis_expose_event;
+typedef struct entis_graphics_expose_event {
+  enum EventType type;
+  uint16_t x, y;
+  uint16_t w, h;
+  uint16_t major, minor;
+  uint16_t count;
+} entis_graphics_expose_event;
+typedef struct entis_no_expose_event {
+  enum EventType type;
+  uint16_t major, minor;
+} entis_no_expose_event;
+typedef struct entis_visibility_event {
+  enum EventType type;
+  uint8_t state;
+} entis_visibility_event;
+typedef struct entis_create_event {
+  enum EventType type;
+  uint16_t x, y;
+  uint16_t w, h;
+  uint16_t border_width;
+} entis_create_event;
+typedef struct entis_destroy_event {
+  enum EventType type;
+  xcb_window_t window;
+} entis_destroy_event;
+typedef struct entis_unmap_event {
+  enum EventType type;
+  xcb_window_t window;
+} entis_unmap_event;
+typedef struct entis_map_event {
+  enum EventType type;
+  xcb_window_t window;
+} entis_map_event;
+typedef struct entis_map_request_event {
+  enum EventType type;
+  xcb_window_t parent;
+} entis_map_request_event;
+typedef struct entis_reparent_event {
+  enum EventType type;
+  xcb_window_t window, parent;
+  uint16_t x, y;
+} entis_reparent_event;
+typedef struct entis_configure_event {
+  enum EventType type;
+  xcb_window_t window;
+  uint16_t x, y;
+  uint16_t w, h;
+  uint16_t border_width;
+} entis_configure_event;
+typedef struct entis_gravity_event {
+  enum EventType type;
+  xcb_window_t window;
+  int16_t x, y;
+} entis_gravity_event;
+typedef struct entis_resize_event {
+  enum EventType type;
+  xcb_window_t window;
+  int16_t w, h;
+} entis_resize_event;
+typedef struct entis_configure_request_event {
+  enum EventType type;
+  xcb_window_t window, sibling;
+  uint16_t x, y;
+  uint16_t w, h;
+  uint16_t border_width;
+  uint16_t value_mask;
+} entis_configure_request_event;
+typedef struct entis_circulate_event {
+  enum EventType type;
+  uint8_t place;
+} entis_circulate_event;
+typedef struct entis_circulate_request_event {
+  enum EventType type;
+  uint8_t place;
+} entis_circulate_request_event;
+typedef struct entis_property_event {
+  enum EventType type;
+  uint32_t time;
+  uint32_t atom;
+  uint8_t state;
+} entis_property_event;
+typedef struct entis_selection_clear_event {
+  enum EventType type;
+  uint32_t selection;
+  uint32_t time;
+} entis_selection_clear_event;
+typedef struct entis_selection_request_event {
+  enum EventType type;
+  xcb_window_t owner, requestor;
+  uint32_t selection, target, property;
+  uint32_t time;
+} entis_selection_request_event;
+typedef struct entis_selection_event {
+  enum EventType type;
+  xcb_window_t requestor;
+  uint32_t selection, target, property;
+  uint32_t time;
+} entis_selection_event;
+typedef struct entis_mapping_event {
+  enum EventType type;
+  uint8_t request, first_keycode, count;
+} entis_mapping_event;
+
+typedef struct EntisEvent {
+  enum EventType type;
+  union {
+    entis_key_event key;
+    entis_button_event button;
+    entis_motion_event motion;
+    entis_crossing_event crossing;
+    entis_focus_event focus;
+    entis_expose_event expose;
+    entis_graphics_expose_event graphics_expose;
+    entis_no_expose_event no_expose;
+    entis_visibility_event visibility;
+    entis_create_event create;
+    entis_destroy_event destroy;
+    entis_unmap_event unmap;
+    entis_map_event map;
+    entis_map_request_event map_request;
+    entis_reparent_event reparent;
+    entis_configure_event configure;
+    entis_gravity_event gravity;
+    entis_resize_event resize;
+    entis_configure_request_event configure_request;
+    entis_circulate_event circulate;
+    entis_circulate_request_event circulate_request;
+    entis_property_event property;
+    entis_selection_event selection;
+    entis_selection_clear_event selection_clear;
+    entis_selection_request_event selection_request;
+    entis_mapping_event mapping;
+  };
+} EntisEvent;
+
+EntisEvent entis_event_wait_event();
+EntisEvent entis_event_poll_event();
+enum EventType entis_event_parse_type(xcb_generic_event_t* event);
+entis_key_event entis_event_parse_key(xcb_generic_event_t* event,
+                                      enum EventType type);
+entis_button_event entis_event_parse_button(xcb_generic_event_t* event,
+                                            enum EventType type);
+entis_motion_event entis_event_parse_motion(xcb_generic_event_t* event,
+                                            enum EventType type);
+entis_crossing_event entis_event_parse_crossing(xcb_generic_event_t* event,
+                                                enum EventType type);
+entis_focus_event entis_event_parse_focus(xcb_generic_event_t* event,
+                                          enum EventType type);
+entis_expose_event entis_event_parse_expose(xcb_generic_event_t* event,
+                                            enum EventType type);
+entis_graphics_expose_event entis_event_parse_graphics_expose(
+    xcb_generic_event_t* event, enum EventType type);
+entis_no_expose_event entis_event_parse_no_expose(xcb_generic_event_t* event,
+                                                  enum EventType type);
+entis_visibility_event entis_event_parse_visibility(xcb_generic_event_t* event,
+                                                    enum EventType type);
+entis_create_event entis_event_parse_create(xcb_generic_event_t* event,
+                                            enum EventType type);
+entis_destroy_event entis_event_parse_destroy(xcb_generic_event_t* event,
+                                              enum EventType type);
+entis_unmap_event entis_event_parse_unmap(xcb_generic_event_t* event,
+                                          enum EventType type);
+entis_map_event entis_event_parse_map(xcb_generic_event_t* event,
+                                      enum EventType type);
+entis_map_request_event entis_event_parse_map_request(
+    xcb_generic_event_t* event, enum EventType type);
+entis_reparent_event entis_event_parse_reparent(xcb_generic_event_t* event,
+                                                enum EventType type);
+entis_configure_event entis_event_parse_configure(xcb_generic_event_t* event,
+                                                  enum EventType type);
+entis_gravity_event entis_event_parse_gravity(xcb_generic_event_t* event,
+                                              enum EventType type);
+entis_resize_event entis_event_parse_resize(xcb_generic_event_t* event,
+                                            enum EventType type);
+entis_configure_request_event entis_event_parse_configure_request(
+    xcb_generic_event_t* event, enum EventType type);
+entis_circulate_event entis_event_parse_circulate(xcb_generic_event_t* event,
+                                                  enum EventType type);
+entis_circulate_request_event entis_event_parse_circulate_request(
+    xcb_generic_event_t* event, enum EventType type);
+entis_property_event entis_event_parse_property(xcb_generic_event_t* event,
+                                                enum EventType type);
+entis_selection_event entis_event_parse_selection(xcb_generic_event_t* event,
+                                                  enum EventType type);
+entis_selection_clear_event entis_event_parse_selection_clear(
+    xcb_generic_event_t* event, enum EventType type);
+entis_selection_request_event entis_event_parse_selection_request(
+    xcb_generic_event_t* event, enum EventType type);
+entis_mapping_event entis_event_parse_mapping(xcb_generic_event_t* event,
+                                              enum EventType type);
+EntisEvent entis_event_parse_event(xcb_generic_event_t* event);
+
+#endif  // ENTIS_EVENT_H_

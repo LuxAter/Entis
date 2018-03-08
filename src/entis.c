@@ -12,7 +12,7 @@ static xcb_screen_t* screen_;
 
 static xcb_window_t window_;
 static xcb_pixmap_t pixmap_;
-static xcb_gcontext_t gcontext_, pixmap_gcontext_;
+static xcb_gcontext_t gcontext_, pixmap_gcontext_, pixmap_bg_gcontext_;
 
 static uint16_t width_, height_;
 
@@ -43,7 +43,8 @@ void entis_init(const char* title, unsigned int w, unsigned int h,
         XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
         XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
         XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW |
-        XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE};
+        XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE |
+        XCB_EVENT_MASK_STRUCTURE_NOTIFY};
     cookie = xcb_create_window(
         connection_, XCB_COPY_FROM_PARENT, window_, screen_->root, 0, 0, w, h,
         0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen_->root_visual,
@@ -58,7 +59,7 @@ void entis_init(const char* title, unsigned int w, unsigned int h,
   }
   free(error_check);
   pixmap_ = xcb_generate_id(connection_);
-  cookie = xcb_create_pixmap(connection_, XCB_COPY_FROM_PARENT, pixmap_,
+  cookie = xcb_create_pixmap(connection_, screen_->root_depth, pixmap_,
                              screen_->root, w, h);
   error_check = xcb_request_check(connection_, cookie);
   if (error_check != NULL) {
@@ -66,19 +67,29 @@ void entis_init(const char* title, unsigned int w, unsigned int h,
             error_check->error_code);
   }
   free(error_check);
-  /* pixmap_gcontext_ = xcb_generate_id(connection_); */
-  /* cookie = xcb_create_gc(connection_, pixmap_gcontext_, pixmap_, value_mask, */
-  /*                        value_list); */
-  /* error_check = xcb_request_check(connection_, cookie); */
-  /* if (error_check != NULL) { */
-  /*   fprintf(stderr, */
-  /*           "[ERROR %u] Failed to generage xcb pixmap graphics context\n", */
-  /*           error_check->error_code); */
-  /* } */
+  pixmap_gcontext_ = xcb_generate_id(connection_);
+  cookie = xcb_create_gc(connection_, pixmap_gcontext_, screen_->root, 0, NULL);
+  error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr,
+            "[ERROR %u] Failed to generage xcb pixmap graphics context\n",
+            error_check->error_code);
+  }
   free(error_check);
+  pixmap_bg_gcontext_ = xcb_generate_id(connection_);
+  cookie = xcb_create_gc(connection_, pixmap_bg_gcontext_, screen_->root,
+                         XCB_GC_FOREGROUND, (uint32_t[]){0x000000});
+  error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr,
+            "[ERROR %u] Failed to generage xcb pixmap graphics context\n",
+            error_check->error_code);
+  }
+  free(error_check);
+  xcb_poly_fill_rectangle(connection_, pixmap_, pixmap_bg_gcontext_, 1,
+                          (xcb_rectangle_t[]){{0, 0, w, h}});
   gcontext_ = xcb_generate_id(connection_);
-  cookie =
-      xcb_create_gc(connection_, gcontext_, screen_->root, value_mask, value_list);
+  cookie = xcb_create_gc(connection_, gcontext_, screen_->root, 0, NULL);
   error_check = xcb_request_check(connection_, cookie);
   if (error_check != NULL) {
     fprintf(stderr, "[ERROR %u] Failed to generage xcb graphics context\n",
@@ -114,13 +125,13 @@ void entis_flush() { xcb_flush(connection_); }
 xcb_connection_t* entis_get_connection() { return connection_; }
 xcb_screen_t* entis_get_screen() { return screen_; }
 xcb_window_t entis_get_window() { return window_; }
-xcb_pixmap_t entis_get_pixmap() { return pixmap_; }
+/* xcb_pixmap_t entis_get_pixmap() { return pixmap_; } */
 xcb_gcontext_t entis_get_gcontext() { return gcontext_; }
 
 void entis_set_color(uint32_t color) {
   uint32_t values[1] = {color};
   xcb_void_cookie_t cookie =
-      xcb_change_gc(connection_, gcontext_, XCB_GC_FOREGROUND, values);
+      xcb_change_gc(connection_, pixmap_gcontext_, XCB_GC_FOREGROUND, values);
   xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
   if (error_check != NULL) {
     fprintf(stderr, "[ERROR %u] Failed to change xcb graphics context color\n",
@@ -144,6 +155,15 @@ void entis_set_background(uint32_t color) {
     fprintf(stderr, "[ERROR %u] Failed to change xcb window background color\n",
             error_check->error_code);
   }
+  free(error_check);
+  cookie = xcb_change_gc(connection_, pixmap_bg_gcontext_, XCB_GC_FOREGROUND,
+                         values);
+  error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr, "[ERROR %u] Failed to change xcb graphics context color\n",
+            error_check->error_code);
+  }
+  free(error_check);
 }
 void entis_set_background_rgb(uint32_t r, uint32_t g, uint32_t b) {
   entis_set_background(0x010000 * r + 0x000100 * g + b);
@@ -162,26 +182,82 @@ void entis_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
   // TODO
 }
 
+void entis_copy_pixmap() {
+  xcb_void_cookie_t cookie = xcb_copy_area(
+      connection_, pixmap_, window_, gcontext_, 0, 0, 0, 0, width_, height_);
+  xcb_generic_error_t* error_check =
+      xcb_request_check(entis_get_connection(), cookie);
+  if (error_check != NULL) {
+    fprintf(stderr, "[ERROR %u] Failed to copy pixmap to window\n",
+            error_check->error_code);
+  }
+}
+
+void entis_clear() {
+  xcb_poly_fill_rectangle(connection_, pixmap_, pixmap_bg_gcontext_, 1,
+                          (xcb_rectangle_t[]){{0, 0, width_, height_}});
+}
+
 xcb_generic_event_t* entis_wait_event() {
+  entis_copy_pixmap();
+  entis_flush();
   xcb_generic_event_t* event = xcb_wait_for_event(connection_);
-  while ((event->response_type & ~0x80) == XCB_EXPOSE) {
-    /* draw the rectangles */
-    xcb_rectangle_t rectangles[] = {{10, 50, 40, 20}, {80, 50, 10, 40}};
-    xcb_poly_rectangle(connection_, window_, gcontext_, 2, rectangles);
-    entis_flush();
-    /* xcb_void_cookie_t cookie = */
-    /*     xcb_copy_area(connection_, pixmap_, window_, gcontext_, 0, 0,
-     * 0, */
-    /*                   0, width_, height_); */
-    /* xcb_generic_error_t* error_check = */
-    /*     xcb_request_check(entis_get_connection(), cookie); */
-    /* if (error_check != NULL) { */
-    /*   fprintf(stderr, "[ERROR %u] Failed to copy pixmap to window\n", */
-    /*           error_check->error_code); */
-    /* } */
+  while (true) {
+    switch (event->response_type & ~0x80) {
+      case XCB_EXPOSE: {
+        entis_copy_pixmap();
+        entis_flush();
+        break;
+      }
+      case XCB_NO_EXPOSURE: {
+        entis_copy_pixmap();
+        entis_flush();
+        break;
+      }
+      case XCB_REPARENT_NOTIFY: {
+        break;
+      }
+      case XCB_CONFIGURE_NOTIFY: {
+        xcb_configure_notify_event_t* ev = (xcb_configure_notify_event_t*)event;
+        break;
+      }
+      case XCB_MAP_NOTIFY: {
+        break;
+      }
+      default: {
+        printf("Unknown event: %" PRIu8 "\n", event->response_type);
+        return event;
+      }
+    }
     free(event);
     event = xcb_wait_for_event(connection_);
   }
-  printf("Unknown event: %" PRIu8 "\n", event->response_type);
   return event;
+  /* while ((event->response_type & ~0x80) == XCB_EXPOSE || */
+  /*        (event->response_type & ~0x80) == XCB_NO_EXPOSURE ||  */
+  /*        event->response_type & _0x80) == XCB_CONFI { */
+  /*   #<{(| bool looping = true; |)}># */
+  /*   #<{(| while (looping) { |)}># */
+  /*   switch (event->response_type & ~0x80) { */
+  /*     case XCB_EXPOSE: */
+  /*       entis_copy_pixmap(); */
+  /*       entis_flush(); */
+  /*       break; */
+  /*       case  */
+  /*     default: */
+  /*       break; */
+  /*   } */
+  /*   #<{(| draw the rectangles |)}># */
+  /*   #<{(| xcb_rectangle_t rectangles[] = {{10, 50, 40, 20}, {80, 50, 10,
+   * 40}}; |)}># */
+  /*   #<{(| xcb_poly_rectangle(connection_, window_, gcontext_, 2, rectangles);
+   * |)}># */
+  /*   #<{(| entis_flush(); |)}># */
+  /*   entis_copy_pixmap(); */
+  /*   entis_flush(); */
+  /*   free(event); */
+  /*   event = xcb_wait_for_event(connection_); */
+  /* } */
+  /* printf("Unknown event: %" PRIu8 "\n", event->response_type); */
+  /* return event; */
 }
