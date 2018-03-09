@@ -9,16 +9,17 @@
 
 int main(int argc, char* argv[]) {
   entis_init("Entis", 500, 500, 0, NULL);
-  entis_set_background(0xFF00FF);
+  entis_set_background(ENTIS_BLACK);
+  entis_set_color(ENTIS_RED);
   entis_clear();
-  entis_set_color(ENTIS_WHITE);
-  entis_flush();
-  entis_point(100, 100);
-  entis_clear_events();
-  entis_button_event event = entis_wait_button();
+  for(int i = 0; i < 500; i += 10){
+    entis_circle(i, i, i);
+  }
+  /* entis_reg_poly(200, 200, 50, 50, 100, 0); */
+  entis_button_event event = entis_wait_event_type(ENTIS_BUTTON_RELEASE).button;
   while (event.x > 100 || event.y > 100) {
-    printf("BUTTON:  x: %u, y: %u\n", event.x, event.y);
-    event = entis_wait_button();
+    entis_point(event.x, event.y);
+    event = entis_wait_event_type(ENTIS_BUTTON_RELEASE).button;
   }
   /* xcb_generic_event_t* event; */
   /* while(true){ */

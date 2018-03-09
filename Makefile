@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 
 export NAME= entis
-export LINK= -lxcb
+export LINK= -lxcb -lm
 export INCLUDE=
 export SOURCE_DIR= src
 export BUILD_DIR= build

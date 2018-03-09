@@ -1,8 +1,11 @@
 #include <inttypes.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
 #include <xcb/xcb.h>
 
 #include "entis.h"
@@ -105,6 +108,9 @@ void entis_init(const char* title, unsigned int w, unsigned int h,
   width_ = w;
   height_ = h;
   xcb_map_window(connection_, window_);
+  xcb_flush(connection_);
+  nanosleep(&(struct timespec){0, 3.125e7}, NULL);
+  entis_clear_events();
 }
 
 void entis_term() {
@@ -186,15 +192,7 @@ void entis_reload_pixmap(uint32_t w, uint32_t h) {
   free(error_check);
   width_ = w;
   height_ = h;
-}
-
-void entis_point(uint16_t x, uint16_t y) {
-  xcb_point_t points[1] = {{x, y}};
-  xcb_poly_point(entis_get_connection(), XCB_COORD_MODE_ORIGIN, pixmap_,
-                 pixmap_gcontext_, 1, points);
-}
-void entis_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
-  // TODO
+  entis_clear();
 }
 
 void entis_copy_pixmap() {
@@ -219,6 +217,7 @@ EntisEvent entis_wait_event() {
   EntisEvent event = entis_event_wait_event();
   while (true) {
     switch (event.type) {
+      case ENTIS_NO_EXPOSURE:
       case ENTIS_EXPOSE: {
         entis_copy_pixmap();
         entis_flush();
@@ -235,9 +234,6 @@ EntisEvent entis_wait_event() {
         break;
       }
       case ENTIS_MAP_NOTIFY: {
-        break;
-      }
-      case ENTIS_NO_EXPOSURE: {
         break;
       }
       default: { return event; }
@@ -272,6 +268,8 @@ EntisEvent entis_poll_event() {
         break;
       }
       case ENTIS_NO_EXPOSURE: {
+        entis_copy_pixmap();
+        entis_flush();
         return (EntisEvent){ENTIS_NO_EVENT};
         break;
       }
@@ -319,4 +317,104 @@ void entis_clear_events() {
   while (event.type != ENTIS_NO_EVENT && event.type != ENTIS_NO_EXPOSURE) {
     event = entis_poll_event();
   }
+}
+
+void entis_point(uint16_t x, uint16_t y) {
+  xcb_poly_point(entis_get_connection(), XCB_COORD_MODE_ORIGIN, pixmap_,
+                 pixmap_gcontext_, 1, (xcb_point_t[]){{x, y}});
+}
+void entis_segment(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
+  xcb_poly_segment(connection_, pixmap_, pixmap_gcontext_, 1,
+                   (xcb_segment_t[]){{x0, y0, x1, y1}});
+}
+void entis_line(uint16_t* x, uint16_t* y, uint16_t n) {
+  xcb_point_t points[n];
+  for (int i = 0; i < n; i++) {
+    points[i] = (xcb_point_t){x[i], y[i]};
+  }
+  xcb_poly_line(connection_, XCB_COORD_MODE_ORIGIN, pixmap_, pixmap_gcontext_,
+                n, points);
+}
+void entis_triangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
+                    uint16_t x2, uint16_t y2) {
+  xcb_poly_line(connection_, XCB_COORD_MODE_ORIGIN, pixmap_, pixmap_gcontext_,
+                3, (xcb_point_t[]){{x0, y0}, {x1, y1}, {x2, y2}});
+}
+void entis_rectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height) {
+  xcb_poly_rectangle(connection_, pixmap_, pixmap_gcontext_, 1,
+                     (xcb_rectangle_t[]){{x, y, width, height}});
+}
+void entis_arc(uint16_t x, uint16_t y, uint16_t width, uint16_t height,
+               uint16_t angle1, uint16_t angle2) {
+  xcb_poly_arc(connection_, pixmap_, pixmap_gcontext_, 1,
+               (xcb_arc_t[]){{x, y, width, height, angle1, angle2}});
+}
+void entis_poly(uint16_t* x, uint16_t* y, uint16_t n) {
+  xcb_point_t points[n];
+  for (int i = 0; i < n; i++) {
+    points[i] = (xcb_point_t){x[i], y[i]};
+  }
+  xcb_poly_line(connection_, XCB_COORD_MODE_ORIGIN, pixmap_, pixmap_gcontext_,
+                n, points);
+}
+
+void entis_fill_triangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
+                         uint16_t x2, uint16_t y2) {
+  xcb_fill_poly(connection_, pixmap_, pixmap_gcontext_, XCB_POLY_SHAPE_CONVEX,
+                XCB_COORD_MODE_ORIGIN, 3,
+                (xcb_point_t[]){{x0, y0}, {x1, y1}, {x2, y2}});
+}
+void entis_fill_rectangle(uint16_t x, uint16_t y, uint16_t width,
+                          uint16_t height) {
+  xcb_poly_fill_rectangle(connection_, pixmap_, pixmap_gcontext_, 1,
+                          (xcb_rectangle_t[]){{x, y, width, height}});
+}
+void entis_fill_arc(uint16_t x, uint16_t y, uint16_t width, uint16_t height,
+                    uint16_t angle1, uint16_t angle2) {
+  xcb_poly_fill_arc(connection_, pixmap_, pixmap_gcontext_, 1,
+                    (xcb_arc_t[]){{x, y, width, height, angle1, angle2}});
+}
+void entis_fill_poly(uint16_t* x, uint16_t* y, uint16_t n) {
+  xcb_point_t points[n];
+  for (int i = 0; i < n; i++) {
+    points[i] = (xcb_point_t){x[i], y[i]};
+  }
+  xcb_fill_poly(connection_, pixmap_, pixmap_gcontext_, XCB_POLY_SHAPE_CONVEX,
+                XCB_COORD_MODE_ORIGIN, n, points);
+}
+
+void entis_reg_poly(uint16_t x, uint16_t y, uint16_t radius_x,
+                    uint16_t radius_y, uint16_t n, double offset) {
+  uint16_t points_x[n + 1], points_y[n + 1];
+  double delta = 2.0 * M_PI / (double)n;
+  int index = 0;
+  for (double theta = 0 + offset; theta < (2 * M_PI) + offset;
+       theta += delta, index++) {
+    points_x[index] = radius_x * cos(theta) + x;
+    points_y[index] = radius_y * sin(theta) + y;
+  }
+  points_x[n] = points_x[0];
+  points_y[n] = points_y[0];
+  entis_poly(points_x, points_y, n + 1);
+}
+void entis_fill_reg_poly(uint16_t x, uint16_t y, uint16_t radius_x,
+                         uint16_t radius_y, uint16_t n, double offset) {
+  uint16_t points_x[n + 1], points_y[n + 1];
+  double delta = 2.0 * M_PI / (double)n;
+  int index = 0;
+  for (double theta = 0 + offset; theta < (2 * M_PI) + offset;
+       theta += delta, index++) {
+    points_x[index] = radius_x * cos(theta) + x;
+    points_y[index] = radius_y * sin(theta) + y;
+  }
+  points_x[n] = points_x[0];
+  points_y[n] = points_y[0];
+  entis_fill_poly(points_x, points_y, n + 1);
+}
+
+void entis_circle(uint16_t x, uint16_t y, uint16_t radius){
+  entis_reg_poly(x, y, radius, radius, radius, 0);
+}
+void entis_fill_circle(uint16_t x, uint16_t y, uint16_t radius){
+  entis_fill_reg_poly(x, y, radius, radius, radius, 0);
 }
