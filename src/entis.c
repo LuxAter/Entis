@@ -20,6 +20,8 @@ static xcb_gcontext_t gcontext_, pixmap_gcontext_, pixmap_bg_gcontext_;
 
 static uint16_t width_, height_;
 
+static uint16_t pix_width_, pix_height_;
+
 void entis_init(const char* title, unsigned int w, unsigned int h,
                 uint32_t value_mask, void* value_list) {
   if (connection_ != NULL) {
@@ -206,18 +208,21 @@ void entis_copy_pixmap() {
   }
 }
 
+void entis_update() {
+  entis_copy_pixmap();
+  entis_flush();
+}
+
 void entis_clear() {
   xcb_poly_fill_rectangle(connection_, pixmap_, pixmap_bg_gcontext_, 1,
                           (xcb_rectangle_t[]){{0, 0, width_, height_}});
 }
 
 EntisEvent entis_wait_event() {
-  entis_copy_pixmap();
-  entis_flush();
+  entis_update();
   EntisEvent event = entis_event_wait_event();
   while (true) {
     switch (event.type) {
-      case ENTIS_NO_EXPOSURE:
       case ENTIS_EXPOSE: {
         entis_copy_pixmap();
         entis_flush();
@@ -236,6 +241,9 @@ EntisEvent entis_wait_event() {
       case ENTIS_MAP_NOTIFY: {
         break;
       }
+      case ENTIS_NO_EXPOSURE: {
+        break;
+      }
       default: { return event; }
     }
     event = entis_event_wait_event();
@@ -244,8 +252,7 @@ EntisEvent entis_wait_event() {
 }
 
 EntisEvent entis_poll_event() {
-  entis_copy_pixmap();
-  entis_flush();
+  entis_update();
   EntisEvent event = entis_event_poll_event();
   while (true) {
     switch (event.type) {
@@ -268,8 +275,6 @@ EntisEvent entis_poll_event() {
         break;
       }
       case ENTIS_NO_EXPOSURE: {
-        entis_copy_pixmap();
-        entis_flush();
         return (EntisEvent){ENTIS_NO_EVENT};
         break;
       }
@@ -412,9 +417,30 @@ void entis_fill_reg_poly(uint16_t x, uint16_t y, uint16_t radius_x,
   entis_fill_poly(points_x, points_y, n + 1);
 }
 
-void entis_circle(uint16_t x, uint16_t y, uint16_t radius){
+void entis_circle(uint16_t x, uint16_t y, uint16_t radius) {
   entis_reg_poly(x, y, radius, radius, radius, 0);
 }
-void entis_fill_circle(uint16_t x, uint16_t y, uint16_t radius){
+void entis_fill_circle(uint16_t x, uint16_t y, uint16_t radius) {
   entis_fill_reg_poly(x, y, radius, radius, radius, 0);
+}
+
+uint16_t entis_get_pixel_width() { return (width_ / pix_width_); }
+uint16_t entis_get_pixel_height() { return (height_ / pix_height_); };
+void entis_set_pixel_size(uint16_t width, uint16_t height) {
+  pix_width_ = width;
+  pix_height_ = height;
+}
+void entis_set_pixel(uint16_t x, uint16_t y) {
+  if (pix_width_ * x < width_ && pix_height_ * y < height_) {
+    entis_fill_rectangle(x * pix_width_, y * pix_height_, pix_width_,
+                         pix_height_);
+  }
+}
+
+void entis_pixel_set_pixel(uint16_t x, uint16_t y) {
+  if (x < width_ && y < height_) {
+    x -= (x % pix_width_);
+    y -= (y % pix_height_);
+    entis_fill_rectangle(x, y, pix_width_, pix_height_);
+  }
 }

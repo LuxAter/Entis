@@ -47,6 +47,7 @@ void entis_set_background_drgb(double r, double g, double b);
 void entis_reload_pixmap(uint32_t w, uint32_t h);
 
 void entis_copy_pixmap();
+void entis_update();
 void entis_clear();
 
 EntisEvent entis_wait_event();
@@ -88,5 +89,11 @@ void entis_fill_reg_poly(uint16_t x, uint16_t y, uint16_t radius_x,
 
 void entis_circle(uint16_t x, uint16_t y, uint16_t radius);
 void entis_fill_circle(uint16_t x, uint16_t y, uint16_t radius);
+
+uint16_t entis_get_pixel_width();
+uint16_t entis_get_pixel_height();
+void entis_set_pixel_size(uint16_t width, uint16_t height);
+void entis_set_pixel(uint16_t x, uint16_t y);
+void entis_pixel_set_pixel(uint16_t x, uint16_t y);
 
 #endif  // ENTIS_ENTIS_H_

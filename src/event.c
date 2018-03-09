@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
 
 #include "entis.h"
 
@@ -16,14 +17,15 @@ EntisEvent entis_event_wait_event() {
 EntisEvent entis_event_poll_event() {
   EntisEvent ret;
   xcb_generic_event_t* event = xcb_poll_for_event(entis_get_connection());
-  if(event != NULL){
+  if (event != NULL) {
     ret = entis_event_parse_event(event);
     free(event);
-  }else{
+  } else {
     ret.type = ENTIS_NO_EVENT;
   }
   return ret;
 }
+
 enum EventType entis_event_parse_type(xcb_generic_event_t* event) {
   switch (event->response_type & ~0x80) {
     case XCB_KEY_PRESS:
@@ -102,12 +104,14 @@ entis_key_event entis_event_parse_key(xcb_generic_event_t* event,
                                       enum EventType type) {
   if (type == ENTIS_KEY_PRESS) {
     xcb_key_press_event_t* ev = (xcb_key_press_event_t*)event;
-    return (entis_key_event){type,       ev->time,   ev->event_x, ev->event_y,
-                             ev->root_x, ev->root_y, ev->state,   ev->event};
+    return (entis_key_event){type,        ev->time,   ev->event_x,
+                             ev->event_y, ev->root_x, ev->root_y,
+                             ev->state,   ev->detail, ev->detail};
   } else if (type == ENTIS_KEY_RELEASE) {
     xcb_key_release_event_t* ev = (xcb_key_release_event_t*)event;
-    return (entis_key_event){type,       ev->time,   ev->event_x, ev->event_y,
-                             ev->root_x, ev->root_y, ev->state,   ev->event};
+    return (entis_key_event){type,        ev->time,   ev->event_x,
+                             ev->event_y, ev->root_x, ev->root_y,
+                             ev->state,   ev->detail, ev->detail};
   } else {
     return (entis_key_event){ENTIS_NO_EVENT, 0, 0, 0, 0, 0, 0, 0};
   }
