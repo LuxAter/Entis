@@ -4,19 +4,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <time.h>
 
-#include <xcb/xcb.h>
+#include <X11/Xlib.h>
 
 #include "entis.h"
 #include "event.h"
 
-static xcb_connection_t* connection_;
-static xcb_screen_t* screen_;
+static Display* connection_;
 
-static xcb_window_t window_;
-static xcb_pixmap_t pixmap_;
-static xcb_gcontext_t gcontext_, pixmap_gcontext_, pixmap_bg_gcontext_;
+static int screen_;
+static Window root_window_;
+static Window window_;
+static Pixmap pixmap_;
+static GC gcontext_, pixmap_gcontext_, pixmap_bg_gcontext_,
+    pixmap_font_gcontext_, pixmap_font_bg_gcontext_;
+static bool enable_font_background_;
+static char* font_name_;
+static XFontStruct* font_;
 
 static uint16_t width_, height_;
 
@@ -24,128 +30,123 @@ static uint16_t pix_width_, pix_height_;
 
 void entis_init(const char* title, unsigned int w, unsigned int h,
                 uint32_t value_mask, void* value_list) {
-  if (connection_ != NULL) {
-    fprintf(stderr, "Connection to X server already established!\n");
-  }
-  connection_ = xcb_connect(NULL, NULL);
+  width_ = w;
+  height_ = h;
+  connection_ = XOpenDisplay(NULL);
   if (connection_ == NULL) {
     fprintf(stderr, "Failed to connect to X server\n");
     exit(1);
-  } else if (xcb_connection_has_error(connection_)) {
-    fprintf(stderr, "Error while attempting to connect to X server\n");
-    xcb_disconnect(connection_);
+  }
+  screen_ = DefaultScreen(connection_);
+  root_window_ = DefaultRootWindow(connection_);
+  window_ = XCreateSimpleWindow(connection_, root_window_, 0, 0, w, h, 0,
+                                BlackPixel(connection_, screen_),
+                                WhitePixel(connection_, screen_));
+  if (!window_) {
+    fprintf(stderr, "Failed to create X11 window\n");
     exit(1);
   }
-  screen_ = xcb_setup_roots_iterator(xcb_get_setup(connection_)).data;
-  window_ = xcb_generate_id(connection_);
-  xcb_void_cookie_t cookie;
-  if (value_mask != 0) {
-    cookie = xcb_create_window(connection_, XCB_COPY_FROM_PARENT, window_,
-                               screen_->root, 0, 0, w, h, 0,
-                               XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                               screen_->root_visual, value_mask, value_list);
-  } else {
-    uint32_t internal_value[1] = {
-        XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
-        XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
-        XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW |
-        XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE |
-        XCB_EVENT_MASK_STRUCTURE_NOTIFY};
-    cookie = xcb_create_window(
-        connection_, XCB_COPY_FROM_PARENT, window_, screen_->root, 0, 0, w, h,
-        0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen_->root_visual,
-        XCB_CW_EVENT_MASK, internal_value);
-  }
-  xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
-  if (error_check != NULL) {
-    fprintf(stderr, "[ERROR %u] Failed to generage xcb window\n",
-            error_check->error_code);
-    xcb_destroy_window(connection_, window_);
+  Atom delWindow = XInternAtom(connection_, "WM_DELETE_WINDOW", 0);
+  XSetWMProtocols(connection_, window_, &delWindow, 1);
+  pixmap_ = XCreatePixmap(connection_, root_window_, w, h,
+                          DefaultDepth(connection_, screen_));
+  if (!pixmap_) {
+    fprintf(stderr, "Failed to generate X11 pixmap\n");
     exit(1);
   }
-  free(error_check);
-  pixmap_ = xcb_generate_id(connection_);
-  cookie = xcb_create_pixmap(connection_, screen_->root_depth, pixmap_,
-                             screen_->root, w, h);
-  error_check = xcb_request_check(connection_, cookie);
-  if (error_check != NULL) {
-    fprintf(stderr, "[ERROR %u] Failed to generate xcb pixmap\n",
-            error_check->error_code);
+  XMapWindow(connection_, window_);
+  XSelectInput(connection_, window_,
+               ExposureMask | StructureNotifyMask | PointerMotionMask |
+                   ButtonPressMask | KeyPressMask);
+  XGCValues vals;
+  vals.graphics_exposures = 0;
+  gcontext_ = XCreateGC(connection_, window_, GCGraphicsExposures, &vals);
+  if (!gcontext_) {
+    fprintf(stderr, "Failed to create X11 graphics context\n");
+    exit(1);
   }
-  free(error_check);
-  pixmap_gcontext_ = xcb_generate_id(connection_);
-  cookie = xcb_create_gc(connection_, pixmap_gcontext_, screen_->root, 0, NULL);
-  error_check = xcb_request_check(connection_, cookie);
-  if (error_check != NULL) {
-    fprintf(stderr,
-            "[ERROR %u] Failed to generage xcb pixmap graphics context\n",
-            error_check->error_code);
+  pixmap_gcontext_ = XCreateGC(connection_, pixmap_, 0, 0);
+  if (!pixmap_gcontext_) {
+    fprintf(stderr, "Failed to create X11 graphics context\n");
+    exit(1);
   }
-  free(error_check);
-  pixmap_bg_gcontext_ = xcb_generate_id(connection_);
-  cookie = xcb_create_gc(connection_, pixmap_bg_gcontext_, screen_->root,
-                         XCB_GC_FOREGROUND, (uint32_t[]){0x000000});
-  error_check = xcb_request_check(connection_, cookie);
-  if (error_check != NULL) {
-    fprintf(stderr,
-            "[ERROR %u] Failed to generage xcb pixmap graphics context\n",
-            error_check->error_code);
+  pixmap_bg_gcontext_ = XCreateGC(connection_, pixmap_, 0, 0);
+  if (!pixmap_bg_gcontext_) {
+    fprintf(stderr, "Failed to create X11 graphics context\n");
+    exit(1);
   }
-  free(error_check);
-  xcb_poly_fill_rectangle(connection_, pixmap_, pixmap_bg_gcontext_, 1,
-                          (xcb_rectangle_t[]){{0, 0, w, h}});
-  gcontext_ = xcb_generate_id(connection_);
-  cookie = xcb_create_gc(connection_, gcontext_, screen_->root, 0, NULL);
-  error_check = xcb_request_check(connection_, cookie);
-  if (error_check != NULL) {
-    fprintf(stderr, "[ERROR %u] Failed to generage xcb graphics context\n",
-            error_check->error_code);
+  pixmap_font_gcontext_ = XCreateGC(connection_, pixmap_, 0, 0);
+  if (!pixmap_font_gcontext_) {
+    fprintf(stderr, "Failed to create X11 graphics context\n");
+    exit(1);
   }
-  free(error_check);
-  if (strlen(title) != 0) {
-    xcb_change_property(connection_, XCB_PROP_MODE_REPLACE, window_,
-                        XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8, strlen(title),
-                        title);
+  pixmap_font_bg_gcontext_ = XCreateGC(connection_, pixmap_, 0, 0);
+  if (!pixmap_font_bg_gcontext_) {
+    fprintf(stderr, "Failed to create X11 graphics context\n");
+    exit(1);
   }
-  width_ = w;
-  height_ = h;
-  xcb_map_window(connection_, window_);
-  xcb_flush(connection_);
-  nanosleep(&(struct timespec){0, 3.125e7}, NULL);
+  enable_font_background_ = false;
+  /* font_name_ = "-*-helvetica-*-10-*"; */
+  font_name_ = "10x20";
+  font_ = XLoadQueryFont(connection_, font_name_);
+  if (!font_) {
+    fprintf(stderr, "Failed to load X11 font %s\n", font_name_);
+    font_ = XLoadQueryFont(connection_, "fixed");
+  }
+  XSetFont(connection_, pixmap_font_gcontext_, font_->fid);
+  XClearArea(connection_, window_, 0, 0, 0, 0, true);
+  entis_set_background(0x000000);
+  entis_clear();
+  entis_update();
+  entis_pause(0, 3.125e7);
   entis_clear_events();
+  /* entis_set_color(0xFFFFFF); */
 }
 
 void entis_term() {
-  if (connection_ == NULL) {
-    fprintf(stderr, "No connection to X server\n");
-  }
-  xcb_destroy_window(connection_, window_);
-  xcb_disconnect(connection_);
+  XDestroyWindow(connection_, window_);
+  XFreeGC(connection_, gcontext_);
+  XFreeGC(connection_, pixmap_gcontext_);
+  XFreeGC(connection_, pixmap_bg_gcontext_);
+  XFreePixmap(connection_, pixmap_);
+  XCloseDisplay(connection_);
 }
 
-bool entis_connection_valid() {
-  if (connection_ == NULL) {
-    return false;
+void entis_set_font(const char* font_name, uint16_t size) {
+  font_name_ = malloc(strlen(font_name) + 1);
+  strcpy(font_name_, font_name);
+  char* font_str_ = malloc(255);
+  sprintf(font_str_, "-*-%s-*-*-*-*-%d-*-*-*-*-*-*-*", font_name, size);
+  XFreeFont(connection_, font_);
+  font_ = XLoadQueryFont(connection_, font_str_);
+  if (!font_) {
+    fprintf(stderr, "Failed to load X11 font %s\n", font_name_);
+    font_ = XLoadQueryFont(connection_, "fixed");
   }
-  return true;
+  XSetFont(connection_, pixmap_font_gcontext_, font_->fid);
 }
-void entis_flush() { xcb_flush(connection_); }
 
-xcb_connection_t* entis_get_connection() { return connection_; }
-xcb_screen_t* entis_get_screen() { return screen_; }
-xcb_window_t entis_get_window() { return window_; }
-xcb_pixmap_t entis_get_pixmap() { return pixmap_; }
-xcb_gcontext_t entis_get_gcontext() { return gcontext_; }
+void entis_set_font_size(uint16_t size) {
+  char* font_str_ = malloc(255);
+  sprintf(font_str_, "-*-%s-*-*-*-*-%d-*-*-*-*-*-*-*", font_name_, size);
+  XFreeFont(connection_, font_);
+  font_ = XLoadQueryFont(connection_, font_str_);
+  if (!font_) {
+    fprintf(stderr, "Failed to load X11 font %s\n", font_name_);
+    font_ = XLoadQueryFont(connection_, "fixed");
+  }
+  XSetFont(connection_, pixmap_font_gcontext_, font_->fid);
+}
+
+void entis_flush() { XFlush(connection_); }
+
+Display* entis_get_connection() { return connection_; }
+Window entis_get_window() { return window_; }
+int entis_get_screen() { return screen_; }
+Pixmap entis_get_pixmap() { return pixmap_; }
 
 void entis_set_color(uint32_t color) {
-  uint32_t values[1] = {color};
-  xcb_void_cookie_t cookie =
-      xcb_change_gc(connection_, pixmap_gcontext_, XCB_GC_FOREGROUND, values);
-  xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
-  if (error_check != NULL) {
-    fprintf(stderr, "[ERROR %u] Failed to change xcb graphics context color\n",
-            error_check->error_code);
-  }
+  XSetForeground(connection_, pixmap_gcontext_, color);
 }
 void entis_set_color_rgb(uint32_t r, uint32_t g, uint32_t b) {
   entis_set_color(0x010000 * r + 0x000100 * g + b);
@@ -156,23 +157,8 @@ void entis_set_color_drgb(double r, double g, double b) {
 }
 
 void entis_set_background(uint32_t color) {
-  uint32_t values[1] = {color};
-  xcb_void_cookie_t cookie = xcb_change_window_attributes(
-      connection_, window_, XCB_CW_BACK_PIXEL, values);
-  xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
-  if (error_check != NULL) {
-    fprintf(stderr, "[ERROR %u] Failed to change xcb window background color\n",
-            error_check->error_code);
-  }
-  free(error_check);
-  cookie = xcb_change_gc(connection_, pixmap_bg_gcontext_, XCB_GC_FOREGROUND,
-                         values);
-  error_check = xcb_request_check(connection_, cookie);
-  if (error_check != NULL) {
-    fprintf(stderr, "[ERROR %u] Failed to change xcb graphics context color\n",
-            error_check->error_code);
-  }
-  free(error_check);
+  XSetWindowBackground(connection_, window_, color);
+  XSetForeground(connection_, pixmap_bg_gcontext_, color);
 }
 void entis_set_background_rgb(uint32_t r, uint32_t g, uint32_t b) {
   entis_set_background(0x010000 * r + 0x000100 * g + b);
@@ -181,31 +167,46 @@ void entis_set_background_drgb(double r, double g, double b) {
   entis_set_background(0x010000 * (uint32_t)(255 * r) +
                        0x000100 * (uint32_t)(256 * g) + (uint32_t)(256 * b));
 }
+void entis_font_color(uint32_t color) {
+  XSetForeground(connection_, pixmap_font_gcontext_, color);
+}
+void entis_font_color_rgb(uint32_t r, uint32_t g, uint32_t b) {
+  entis_font_color(0x010000 * r + 0x000100 * g + b);
+}
+void entis_font_color_drgb(double r, double g, double b) {
+  entis_font_color(0x010000 * (uint32_t)(255 * r) +
+                   0x000100 * (uint32_t)(256 * g) + (uint32_t)(256 * b));
+}
+void entis_font_set_background(bool setting) {
+  enable_font_background_ = setting;
+}
+void entis_font_background(uint32_t color) {
+  if (enable_font_background_ == false) {
+    enable_font_background_ = true;
+  }
+  XSetForeground(connection_, pixmap_font_bg_gcontext_, color);
+}
+void entis_font_background_rgb(uint32_t r, uint32_t g, uint32_t b) {
+  entis_font_background(0x010000 * r + 0x000100 * g + b);
+}
+void entis_font_background_drgb(double r, double g, double b) {
+  entis_font_background(0x010000 * (uint32_t)(255 * r) +
+                        0x000100 * (uint32_t)(256 * g) + (uint32_t)(256 * b));
+}
 
 void entis_reload_pixmap(uint32_t w, uint32_t h) {
-  xcb_free_pixmap(connection_, pixmap_);
-  xcb_void_cookie_t cookie = xcb_create_pixmap(connection_, screen_->root_depth,
-                                               pixmap_, screen_->root, w, h);
-  xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
-  if (error_check != NULL) {
-    fprintf(stderr, "[ERROR %u] Failed to resize xcb pixmap\n",
-            error_check->error_code);
-  }
-  free(error_check);
+  XFreePixmap(connection_, pixmap_);
+  pixmap_ = XCreatePixmap(connection_, root_window_, w, h,
+                          DefaultDepth(connection_, screen_));
+  XClearWindow(connection_, window_);
   width_ = w;
   height_ = h;
   entis_clear();
 }
 
 void entis_copy_pixmap() {
-  xcb_void_cookie_t cookie = xcb_copy_area(
-      connection_, pixmap_, window_, gcontext_, 0, 0, 0, 0, width_, height_);
-  xcb_generic_error_t* error_check =
-      xcb_request_check(entis_get_connection(), cookie);
-  if (error_check != NULL) {
-    fprintf(stderr, "[ERROR %u] Failed to copy pixmap to window\n",
-            error_check->error_code);
-  }
+  XCopyArea(connection_, pixmap_, window_, gcontext_, 0, 0, width_, height_, 0,
+            0);
 }
 
 void entis_update() {
@@ -214,34 +215,33 @@ void entis_update() {
 }
 
 void entis_clear() {
-  xcb_poly_fill_rectangle(connection_, pixmap_, pixmap_bg_gcontext_, 1,
-                          (xcb_rectangle_t[]){{0, 0, width_, height_}});
+  XFillRectangle(connection_, pixmap_, pixmap_bg_gcontext_, 0, 0, width_,
+                 height_);
+  entis_flush();
 }
 
-EntisEvent entis_wait_event() {
+XEvent entis_wait_event() {
   entis_update();
-  EntisEvent event = entis_event_wait_event();
+  XEvent event = entis_event_wait_event();
   while (true) {
     switch (event.type) {
-      case ENTIS_EXPOSE: {
+      case NoExpose:
+      case Expose: {
         entis_copy_pixmap();
         entis_flush();
         break;
       }
-      case ENTIS_REPARENT_NOTIFY: {
+      case ReparentNotify: {
         break;
       }
-      case ENTIS_CONFIGURE_NOTIFY: {
-        if (event.configure.width != width_ ||
-            event.configure.height != height_) {
-          entis_reload_pixmap(event.configure.width, event.configure.height);
+      case ConfigureNotify: {
+        if (event.xconfigure.width != width_ ||
+            event.xconfigure.height != height_) {
+          entis_reload_pixmap(event.xconfigure.width, event.xconfigure.height);
         }
         break;
       }
-      case ENTIS_MAP_NOTIFY: {
-        break;
-      }
-      case ENTIS_NO_EXPOSURE: {
+      case MapNotify: {
         break;
       }
       default: { return event; }
@@ -251,31 +251,28 @@ EntisEvent entis_wait_event() {
   return event;
 }
 
-EntisEvent entis_poll_event() {
+XEvent entis_poll_event() {
   entis_update();
-  EntisEvent event = entis_event_poll_event();
+  XEvent event = entis_event_poll_event();
   while (true) {
     switch (event.type) {
-      case ENTIS_EXPOSE: {
+      case NoExpose:
+      case Expose: {
         entis_copy_pixmap();
         entis_flush();
         break;
       }
-      case ENTIS_REPARENT_NOTIFY: {
+      case ReparentNotify: {
         break;
       }
-      case ENTIS_CONFIGURE_NOTIFY: {
-        if (event.configure.width != width_ ||
-            event.configure.height != height_) {
-          entis_reload_pixmap(event.configure.width, event.configure.height);
+      case ConfigureNotify: {
+        if (event.xconfigure.width != width_ ||
+            event.xconfigure.height != height_) {
+          entis_reload_pixmap(event.xconfigure.width, event.xconfigure.height);
         }
         break;
       }
-      case ENTIS_MAP_NOTIFY: {
-        break;
-      }
-      case ENTIS_NO_EXPOSURE: {
-        return (EntisEvent){ENTIS_NO_EVENT};
+      case MapNotify: {
         break;
       }
       default: { return event; }
@@ -285,107 +282,100 @@ EntisEvent entis_poll_event() {
   return event;
 }
 
-EntisEvent entis_wait_event_type(uint32_t type) {
-  EntisEvent event = entis_wait_event();
-  while ((event.type & type) == false) {
+XEvent entis_wait_event_type(uint32_t type) {
+  XEvent event = entis_wait_event();
+  while (event.type != type) {
     event = entis_wait_event();
   }
   return event;
 }
 
-EntisEvent entis_poll_event_type(uint32_t type) {
-  EntisEvent event = entis_poll_event();
-  while ((event.type & type) == false && event.type != ENTIS_NO_EVENT) {
+XEvent entis_poll_event_type(uint32_t type) {
+  XEvent event = entis_poll_event();
+  while ((event.type & type) == false && event.type != 0) {
     event = entis_poll_event();
   }
   return event;
 }
 
-entis_key_event entis_wait_key() {
-  return entis_wait_event_type(ENTIS_KEY_PRESS | ENTIS_KEY_RELEASE).key;
-}
-entis_key_event entis_poll_key() {
-  return entis_poll_event_type(ENTIS_KEY_PRESS | ENTIS_KEY_RELEASE).key;
-}
+XKeyEvent entis_wait_key() { return entis_wait_event_type(KeyPress).xkey; }
+XKeyEvent entis_poll_key() { return entis_poll_event_type(KeyPress).xkey; }
 
-entis_button_event entis_wait_button() {
-  return entis_wait_event_type(ENTIS_BUTTON_PRESS | ENTIS_BUTTON_RELEASE)
-      .button;
+XButtonEvent entis_wait_button() {
+  return entis_wait_event_type(ButtonPress).xbutton;
 }
-entis_button_event entis_poll_button() {
-  return entis_poll_event_type(ENTIS_BUTTON_PRESS | ENTIS_BUTTON_RELEASE)
-      .button;
+XButtonEvent entis_poll_button() {
+  return entis_poll_event_type(ButtonPress).xbutton;
 }
 
 void entis_clear_events() {
-  EntisEvent event = entis_poll_event();
-  while (event.type != ENTIS_NO_EVENT && event.type != ENTIS_NO_EXPOSURE) {
+  XEvent event = entis_poll_event();
+  while (event.type != 0) {
     event = entis_poll_event();
   }
 }
 
 void entis_point(uint16_t x, uint16_t y) {
-  xcb_poly_point(entis_get_connection(), XCB_COORD_MODE_ORIGIN, pixmap_,
-                 pixmap_gcontext_, 1, (xcb_point_t[]){{x, y}});
+  XDrawPoint(connection_, pixmap_, pixmap_gcontext_, x, y);
 }
 void entis_segment(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
-  xcb_poly_segment(connection_, pixmap_, pixmap_gcontext_, 1,
-                   (xcb_segment_t[]){{x0, y0, x1, y1}});
+  XDrawLine(connection_, pixmap_, pixmap_gcontext_, x0, y1, x1, y1);
 }
 void entis_line(uint16_t* x, uint16_t* y, uint16_t n) {
-  xcb_point_t points[n];
+  XPoint points[n];
   for (int i = 0; i < n; i++) {
-    points[i] = (xcb_point_t){x[i], y[i]};
+    points[i] = (XPoint){x[i], y[i]};
   }
-  xcb_poly_line(connection_, XCB_COORD_MODE_ORIGIN, pixmap_, pixmap_gcontext_,
-                n, points);
+  XDrawLines(connection_, pixmap_, pixmap_gcontext_, points, n,
+             CoordModeOrigin);
 }
 void entis_triangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
                     uint16_t x2, uint16_t y2) {
-  xcb_poly_line(connection_, XCB_COORD_MODE_ORIGIN, pixmap_, pixmap_gcontext_,
-                3, (xcb_point_t[]){{x0, y0}, {x1, y1}, {x2, y2}});
+  XDrawLines(connection_, pixmap_, pixmap_gcontext_,
+             (XPoint[]){{x0, y0}, {x1, y1}, {x2, y2}, {x0, y0}}, 4,
+             CoordModeOrigin);
 }
 void entis_rectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height) {
-  xcb_poly_rectangle(connection_, pixmap_, pixmap_gcontext_, 1,
-                     (xcb_rectangle_t[]){{x, y, width, height}});
+  XDrawRectangle(connection_, pixmap_, pixmap_gcontext_, x, y, width, height);
 }
 void entis_arc(uint16_t x, uint16_t y, uint16_t width, uint16_t height,
                uint16_t angle1, uint16_t angle2) {
-  xcb_poly_arc(connection_, pixmap_, pixmap_gcontext_, 1,
-               (xcb_arc_t[]){{x, y, width, height, angle1, angle2}});
+  XDrawArc(connection_, pixmap_, pixmap_gcontext_, x, y, width, height, angle1,
+           angle2);
 }
 void entis_poly(uint16_t* x, uint16_t* y, uint16_t n) {
-  xcb_point_t points[n];
+  XPoint points[n + 1];
   for (int i = 0; i < n; i++) {
-    points[i] = (xcb_point_t){x[i], y[i]};
+    points[i] = (XPoint){x[i], y[i]};
   }
-  xcb_poly_line(connection_, XCB_COORD_MODE_ORIGIN, pixmap_, pixmap_gcontext_,
-                n, points);
+  points[n] = points[0];
+  XDrawLines(connection_, pixmap_, pixmap_gcontext_, points, n + 1,
+             CoordModeOrigin);
 }
 
 void entis_fill_triangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
                          uint16_t x2, uint16_t y2) {
-  xcb_fill_poly(connection_, pixmap_, pixmap_gcontext_, XCB_POLY_SHAPE_CONVEX,
-                XCB_COORD_MODE_ORIGIN, 3,
-                (xcb_point_t[]){{x0, y0}, {x1, y1}, {x2, y2}});
+  XFillPolygon(connection_, pixmap_, pixmap_gcontext_,
+               (XPoint[]){{x0, y0}, {x1, y1}, {x2, y2}, {x0, y0}}, 4, Convex,
+               CoordModeOrigin);
 }
 void entis_fill_rectangle(uint16_t x, uint16_t y, uint16_t width,
                           uint16_t height) {
-  xcb_poly_fill_rectangle(connection_, pixmap_, pixmap_gcontext_, 1,
-                          (xcb_rectangle_t[]){{x, y, width, height}});
+  XFillRectangle(connection_, pixmap_, pixmap_gcontext_, x, y, width, height);
 }
 void entis_fill_arc(uint16_t x, uint16_t y, uint16_t width, uint16_t height,
                     uint16_t angle1, uint16_t angle2) {
-  xcb_poly_fill_arc(connection_, pixmap_, pixmap_gcontext_, 1,
-                    (xcb_arc_t[]){{x, y, width, height, angle1, angle2}});
+  XFillArc(connection_, pixmap_, pixmap_gcontext_, x, y, width, height, angle1,
+           angle2);
 }
 void entis_fill_poly(uint16_t* x, uint16_t* y, uint16_t n) {
-  xcb_point_t points[n];
+  XPoint points[n + 1];
   for (int i = 0; i < n; i++) {
-    points[i] = (xcb_point_t){x[i], y[i]};
+    points[i] = (XPoint){x[i], y[i]};
   }
-  xcb_fill_poly(connection_, pixmap_, pixmap_gcontext_, XCB_POLY_SHAPE_CONVEX,
-                XCB_COORD_MODE_ORIGIN, n, points);
+  points[n] = points[0];
+  XFillPolygon(connection_, pixmap_, pixmap_gcontext_, points, n + 1, Convex,
+               CoordModeOrigin);
 }
 
 void entis_reg_poly(uint16_t x, uint16_t y, uint16_t radius_x,
@@ -424,6 +414,33 @@ void entis_fill_circle(uint16_t x, uint16_t y, uint16_t radius) {
   entis_fill_reg_poly(x, y, radius, radius, radius, 0);
 }
 
+void entis_draw_string(uint16_t x, uint16_t y, const char* fmt, ...) {
+  char* text = malloc(255);
+  va_list args;
+  va_start(args, fmt);
+  vsprintf(text, fmt, args);
+  va_end(args);
+  if (enable_font_background_ == true) {
+    uint16_t text_width = XTextWidth(font_, text, strlen(text));
+    uint16_t text_height = font_->max_bounds.ascent + font_->max_bounds.descent;
+    XFillRectangle(connection_, pixmap_, pixmap_font_bg_gcontext_, x,
+                   y - text_height, text_width, text_height);
+  }
+  XDrawString(connection_, pixmap_, pixmap_font_gcontext_, x, y, text,
+              strlen(text));
+}
+void entis_erase_string(uint16_t x, uint16_t y, const char* fmt, ...) {
+  char* text = malloc(255);
+  va_list args;
+  va_start(args, fmt);
+  vsprintf(text, fmt, args);
+  va_end(args);
+  uint16_t text_width = XTextWidth(font_, text, strlen(text));
+  uint16_t text_height = font_->max_bounds.ascent + font_->max_bounds.descent;
+  XFillRectangle(connection_, pixmap_, pixmap_bg_gcontext_, x, y - text_height,
+                 text_width, text_height);
+}
+
 uint16_t entis_get_pixel_width() { return (width_ / pix_width_); }
 uint16_t entis_get_pixel_height() { return (height_ / pix_height_); };
 void entis_set_pixel_size(uint16_t width, uint16_t height) {
@@ -443,4 +460,8 @@ void entis_pixel_set_pixel(uint16_t x, uint16_t y) {
     y -= (y % pix_height_);
     entis_fill_rectangle(x, y, pix_width_, pix_height_);
   }
+}
+
+void entis_pause(uint64_t seconds, uint64_t nanoseconds) {
+  nanosleep(&(struct timespec){seconds, nanoseconds}, NULL);
 }
