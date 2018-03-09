@@ -1,2 +1,9 @@
 Wait event receving continuous events of (NO_EVENT) or (NO_EXPOSE)? THis is
 causing a large strain on the system.
+  Solved by just not displaying on calls to NO_EXPOSE, the calling display on
+  no expose caused a lot of extra work.
+
+Reimplement entis event, so that we are able to determin key code at event
+parse time.
+
+

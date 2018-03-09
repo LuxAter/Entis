@@ -4,6 +4,7 @@ export NAME= entis
 export LINK= -lX11 -lm
 export INCLUDE=
 export SOURCE_DIR= src
+export INCLUDE_DIR= include
 export BUILD_DIR= build
 export DOC_DIR= docs
 export BASE_PATH=$(shell pwd)
@@ -13,7 +14,7 @@ export CFLAGS= -Wall -MMD -c
 
 export INSTALL_PATH=/usr/local
 
-export COMMON_INCLUDE=$(INCLUDE)
+export COMMON_INCLUDE=-I$(BASE_PATH)/$(INCLUDE_DIR) $(INCLUDE)
 
 export SECTION_COLOR=\033[1;97m
 export TARGET_COLOR=\033[0;34m

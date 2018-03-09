@@ -58,17 +58,17 @@ void entis_copy_pixmap();
 void entis_update();
 void entis_clear();
 
-XEvent entis_wait_event();
-XEvent entis_poll_event();
+EntisEvent entis_wait_event();
+EntisEvent entis_poll_event();
 
-XEvent entis_wait_event_type(uint32_t type);
-XEvent entis_poll_event_type(uint32_t type);
+EntisEvent entis_wait_event_type(uint32_t type);
+EntisEvent entis_poll_event_type(uint32_t type);
 
-XKeyEvent entis_wait_key();
-XKeyEvent entis_poll_key();
+entis_key_event entis_wait_key();
+entis_key_event entis_poll_key();
 
-XButtonEvent entis_wait_button();
-XButtonEvent entis_poll_button();
+entis_button_event entis_wait_button();
+entis_button_event entis_poll_button();
 
 void entis_clear_events();
 

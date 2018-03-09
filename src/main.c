@@ -30,30 +30,29 @@ int main(int argc, char* argv[]) {
   /* entis_set_font_size(50); */
   entis_set_pixel_size(50, 50);
   entis_clear();
-  for (int i = 0; i < entis_get_pixel_width(); i++) {
-    for (int j = 0; j < entis_get_pixel_height(); j++) {
-      /* printf("(%d/%d, %d/%d)\n", i, entis_get_pixel_width(), j,
-       * entis_get_pixel_height()); */
-      if (i % 2 == 0 && j % 2 == 1) {
-        /* entis_set_pixel(i, j); */
-      } else if (i % 2 == 1 && j % 2 == 0) {
-        /* entis_set_pixel(i, j); */
-      }
-    }
-  }
-  entis_draw_string(50, 50, "Clicks: %d", 0);
+  /* for (int i = 0; i < entis_get_pixel_width(); i++) { */
+  /*   for (int j = 0; j < entis_get_pixel_height(); j++) { */
+  /*     #<{(| printf("(%d/%d, %d/%d)\n", i, entis_get_pixel_width(), j, */
+  /*      * entis_get_pixel_height()); |)}># */
+  /*     if (i % 2 == 0 && j % 2 == 1) { */
+  /*       #<{(| entis_set_pixel(i, j); |)}># */
+  /*     } else if (i % 2 == 1 && j % 2 == 0) { */
+  /*       #<{(| entis_set_pixel(i, j); |)}># */
+  /*     } */
+  /*   } */
+  /* } */
+  entis_draw_string(50, 50, "Clicks: %s", "");
+  char* str = malloc(255);
+  int i= 0;
   entis_set_color(ENTIS_MAGENTA);
-  XButtonEvent event = entis_wait_button();
-  int count = 0;
-  while (event.x > 100 || event.y > 100) {
-    entis_erase_string(50, 50, "Clicks: %d", count);
-    /* printf("DATA: %d STATE: %d\n", event.keycode, event.state); */
-    /* entis_point(event.x, event.y); */
-    entis_pixel_set_pixel(event.x, event.y);
-    count++;
-    entis_draw_string(50, 50, "Clicks: %d", count);
-    /* entis_update(); */
-    event = entis_wait_button();
+  entis_key_event event = entis_wait_key();
+  while(event.keysym != (int)'q'){
+    entis_erase_string(50, 50, "Clicks: %s", str);
+    str[i] = event.keysym;
+    str[i + 1] = '\0';
+    i++;
+    entis_draw_string(50, 50, "Clicks: %s", str);
+    event = entis_wait_key();
   }
   /* xcb_generic_event_t* event; */
   /* while(true){ */

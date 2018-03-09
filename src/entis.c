@@ -220,28 +220,28 @@ void entis_clear() {
   entis_flush();
 }
 
-XEvent entis_wait_event() {
+EntisEvent entis_wait_event() {
   entis_update();
-  XEvent event = entis_event_wait_event();
+  EntisEvent event = entis_event_wait_event();
   while (true) {
     switch (event.type) {
-      case NoExpose:
-      case Expose: {
+      case ENTIS_NO_EXPOSURE:
+      case ENTIS_EXPOSE: {
         entis_copy_pixmap();
         entis_flush();
         break;
       }
-      case ReparentNotify: {
+      case ENTIS_REPARENT_NOTIFY: {
         break;
       }
-      case ConfigureNotify: {
-        if (event.xconfigure.width != width_ ||
-            event.xconfigure.height != height_) {
-          entis_reload_pixmap(event.xconfigure.width, event.xconfigure.height);
+      case ENTIS_CONFIGURE_NOTIFY: {
+        if (event.configure.width != width_ ||
+            event.configure.height != height_) {
+          entis_reload_pixmap(event.configure.width, event.configure.height);
         }
         break;
       }
-      case MapNotify: {
+      case ENTIS_MAP_NOTIFY: {
         break;
       }
       default: { return event; }
@@ -251,28 +251,28 @@ XEvent entis_wait_event() {
   return event;
 }
 
-XEvent entis_poll_event() {
+EntisEvent entis_poll_event() {
   entis_update();
-  XEvent event = entis_event_poll_event();
+  EntisEvent event = entis_event_poll_event();
   while (true) {
     switch (event.type) {
-      case NoExpose:
-      case Expose: {
+      case ENTIS_NO_EXPOSURE:
+      case ENTIS_EXPOSE: {
         entis_copy_pixmap();
         entis_flush();
         break;
       }
-      case ReparentNotify: {
+      case ENTIS_REPARENT_NOTIFY: {
         break;
       }
-      case ConfigureNotify: {
-        if (event.xconfigure.width != width_ ||
-            event.xconfigure.height != height_) {
-          entis_reload_pixmap(event.xconfigure.width, event.xconfigure.height);
+      case ENTIS_CONFIGURE_NOTIFY: {
+        if (event.configure.width != width_ ||
+            event.configure.height != height_) {
+          entis_reload_pixmap(event.configure.width, event.configure.height);
         }
         break;
       }
-      case MapNotify: {
+      case ENTIS_MAP_NOTIFY: {
         break;
       }
       default: { return event; }
@@ -282,35 +282,35 @@ XEvent entis_poll_event() {
   return event;
 }
 
-XEvent entis_wait_event_type(uint32_t type) {
-  XEvent event = entis_wait_event();
+EntisEvent entis_wait_event_type(uint32_t type) {
+  EntisEvent event = entis_wait_event();
   while (event.type != type) {
     event = entis_wait_event();
   }
   return event;
 }
 
-XEvent entis_poll_event_type(uint32_t type) {
-  XEvent event = entis_poll_event();
+EntisEvent entis_poll_event_type(uint32_t type) {
+  EntisEvent event = entis_poll_event();
   while ((event.type & type) == false && event.type != 0) {
     event = entis_poll_event();
   }
   return event;
 }
 
-XKeyEvent entis_wait_key() { return entis_wait_event_type(KeyPress).xkey; }
-XKeyEvent entis_poll_key() { return entis_poll_event_type(KeyPress).xkey; }
+entis_key_event entis_wait_key() { return entis_wait_event_type(ENTIS_KEY_PRESS).key; }
+entis_key_event entis_poll_key() { return entis_poll_event_type(ENTIS_KEY_PRESS).key; }
 
-XButtonEvent entis_wait_button() {
-  return entis_wait_event_type(ButtonPress).xbutton;
+entis_button_event entis_wait_button() {
+  return entis_wait_event_type(ENTIS_BUTTON_PRESS).button;
 }
-XButtonEvent entis_poll_button() {
-  return entis_poll_event_type(ButtonPress).xbutton;
+entis_button_event entis_poll_button() {
+  return entis_poll_event_type(ENTIS_BUTTON_PRESS).button;
 }
 
 void entis_clear_events() {
-  XEvent event = entis_poll_event();
-  while (event.type != 0) {
+  EntisEvent event = entis_poll_event();
+  while (event.type != ENTIS_NO_EVENT) {
     event = entis_poll_event();
   }
 }
