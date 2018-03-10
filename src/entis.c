@@ -1,10 +1,10 @@
 #include <inttypes.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <time.h>
 
 #include <X11/Xlib.h>
@@ -27,6 +27,8 @@ static XFontStruct* font_;
 static uint16_t width_, height_;
 
 static uint16_t pix_width_, pix_height_;
+
+static uint32_t colors_[4];
 
 void entis_init(const char* title, unsigned int w, unsigned int h,
                 uint32_t value_mask, void* value_list) {
@@ -100,6 +102,9 @@ void entis_init(const char* title, unsigned int w, unsigned int h,
   entis_update();
   entis_pause(0, 3.125e7);
   entis_clear_events();
+  for (int i = 0; i < 4; i++) {
+    colors_[i] = 0x000000;
+  }
   /* entis_set_color(0xFFFFFF); */
 }
 
@@ -142,11 +147,19 @@ void entis_flush() { XFlush(connection_); }
 
 Display* entis_get_connection() { return connection_; }
 Window entis_get_window() { return window_; }
-int entis_get_screen() { return screen_; }
 Pixmap entis_get_pixmap() { return pixmap_; }
+int entis_get_screen() { return screen_; }
+bool entis_font_check_background() { return enable_font_background_; }
+uint32_t entis_get_color(uint16_t index) {
+  if (index < 4) {
+    return colors_[index];
+  }
+  return 0x000000;
+}
 
 void entis_set_color(uint32_t color) {
   XSetForeground(connection_, pixmap_gcontext_, color);
+  colors_[0] = color;
 }
 void entis_set_color_rgb(uint32_t r, uint32_t g, uint32_t b) {
   entis_set_color(0x010000 * r + 0x000100 * g + b);
@@ -159,6 +172,7 @@ void entis_set_color_drgb(double r, double g, double b) {
 void entis_set_background(uint32_t color) {
   XSetWindowBackground(connection_, window_, color);
   XSetForeground(connection_, pixmap_bg_gcontext_, color);
+  colors_[1] = color;
 }
 void entis_set_background_rgb(uint32_t r, uint32_t g, uint32_t b) {
   entis_set_background(0x010000 * r + 0x000100 * g + b);
@@ -169,6 +183,7 @@ void entis_set_background_drgb(double r, double g, double b) {
 }
 void entis_font_color(uint32_t color) {
   XSetForeground(connection_, pixmap_font_gcontext_, color);
+  colors_[2] = color;
 }
 void entis_font_color_rgb(uint32_t r, uint32_t g, uint32_t b) {
   entis_font_color(0x010000 * r + 0x000100 * g + b);
@@ -185,6 +200,7 @@ void entis_font_background(uint32_t color) {
     enable_font_background_ = true;
   }
   XSetForeground(connection_, pixmap_font_bg_gcontext_, color);
+  colors_[3] = color;
 }
 void entis_font_background_rgb(uint32_t r, uint32_t g, uint32_t b) {
   entis_font_background(0x010000 * r + 0x000100 * g + b);
@@ -298,8 +314,12 @@ EntisEvent entis_poll_event_type(uint32_t type) {
   return event;
 }
 
-entis_key_event entis_wait_key() { return entis_wait_event_type(ENTIS_KEY_PRESS).key; }
-entis_key_event entis_poll_key() { return entis_poll_event_type(ENTIS_KEY_PRESS).key; }
+entis_key_event entis_wait_key() {
+  return entis_wait_event_type(ENTIS_KEY_PRESS).key;
+}
+entis_key_event entis_poll_key() {
+  return entis_poll_event_type(ENTIS_KEY_PRESS).key;
+}
 
 entis_button_event entis_wait_button() {
   return entis_wait_event_type(ENTIS_BUTTON_PRESS).button;
@@ -313,6 +333,11 @@ void entis_clear_events() {
   while (event.type != ENTIS_NO_EVENT) {
     event = entis_poll_event();
   }
+}
+
+void entis_erase(uint16_t x, uint16_t y, uint16_t width, uint16_t height) {
+  XFillRectangle(connection_, pixmap_, pixmap_bg_gcontext_, x, y, width,
+                 height);
 }
 
 void entis_point(uint16_t x, uint16_t y) {
@@ -440,6 +465,17 @@ void entis_erase_string(uint16_t x, uint16_t y, const char* fmt, ...) {
   XFillRectangle(connection_, pixmap_, pixmap_bg_gcontext_, x, y - text_height,
                  text_width, text_height);
 }
+uint16_t entis_string_width(const char* fmt, ...) {
+  char* text = malloc(255);
+  va_list args;
+  va_start(args, fmt);
+  vsprintf(text, fmt, args);
+  va_end(args);
+  return XTextWidth(font_, text, strlen(text));
+}
+uint16_t entis_string_height(const char* fmt, ...) {
+  return font_->max_bounds.ascent + font_->max_bounds.descent;
+}
 
 uint16_t entis_get_pixel_width() { return (width_ / pix_width_); }
 uint16_t entis_get_pixel_height() { return (height_ / pix_height_); };
@@ -464,4 +500,72 @@ void entis_pixel_set_pixel(uint16_t x, uint16_t y) {
 
 void entis_pause(uint64_t seconds, uint64_t nanoseconds) {
   nanosleep(&(struct timespec){seconds, nanoseconds}, NULL);
+}
+
+Button entis_button(char* text, uint16_t x, uint16_t y, uint16_t width,
+                    uint16_t height) {
+  return (Button){x, y, width, height, text, 0, 0, 0, 0, false};
+}
+void entis_button_fg(Button* button, uint32_t normal, uint32_t hover) {
+  button->fg_normal = normal;
+  button->fg_hover = hover;
+}
+void entis_button_bg(Button* button, uint32_t normal, uint32_t hover) {
+  button->bg_normal = normal;
+  button->bg_hover = hover;
+}
+
+bool entis_handle_button(Button* button, EntisEvent event) {
+  switch (event.type) {
+    case ENTIS_MOTION_NOTIFY: {
+      uint16_t x = event.motion.x, y = event.motion.y;
+      if (button->is_hover == false && x > button->x &&
+          x < button->x + button->width && y > button->y &&
+          y < button->y + button->height) {
+        button->is_hover = true;
+      } else if (button->is_hover == true &&
+                 (x < button->x || x > button->x + button->width ||
+                  y < button->y || y > button->y + button->height)) {
+        button->is_hover = false;
+      }
+      break;
+    }
+    case ENTIS_BUTTON_PRESS: {
+      uint16_t x = event.button.x, y = event.button.y;
+      if (button->is_hover == true && x > button->x &&
+          x < button->x + button->width && y > button->y &&
+          y < button->y + button->height) {
+        return true;
+      }
+      break;
+    }
+    default: { break; }
+  }
+  return false;
+}
+
+void entis_draw_button(Button button) {
+  bool font_bg = enable_font_background_;
+  uint32_t colors[4];
+  memcpy(colors, colors_, sizeof(uint32_t) * 4);
+  entis_font_set_background(false);
+  if (button.is_hover == false) {
+    entis_set_color(button.bg_normal);
+    entis_font_color(button.fg_normal);
+  } else {
+    entis_set_color(button.bg_hover);
+    entis_font_color(button.fg_hover);
+  }
+  entis_fill_rectangle(button.x, button.y, button.width, button.height);
+  uint16_t disp_x =
+      button.x + ((button.width - entis_string_width(button.text)) / 2);
+  uint16_t disp_y =
+      button.y + ((button.height + entis_string_height(button.text)) / 2);
+  entis_draw_string(disp_x, disp_y, button.text);
+  entis_set_color(colors[0]);
+  entis_font_color(colors[2]);
+  entis_font_set_background(font_bg);
+}
+void entis_erase_button(Button button){
+  entis_erase(button.x, button.y, button.width, button.height);
 }

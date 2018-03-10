@@ -1,9 +1,9 @@
 #ifndef ENTIS_ENTIS_H_
 #define ENTIS_ENTIS_H_
 
-#include <stdbool.h>
 #include <X11/Xlib.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include "event.h"
 
@@ -25,6 +25,14 @@
 #define ENTIS_CYAN 0x00FFFF
 #define ENTIS_WHITE 0xFFFFFF
 
+typedef struct Button {
+  uint16_t x, y, width, height;
+  const char* text;
+  uint32_t fg_normal, fg_hover;
+  uint32_t bg_normal, bg_hover;
+  bool is_hover;
+} Button;
+
 void entis_init(const char* title, unsigned int w, unsigned int h,
                 uint32_t value_mask, void* value_list);
 void entis_term();
@@ -37,6 +45,8 @@ Display* entis_get_connection();
 Window entis_get_window();
 Pixmap entis_get_pixmap();
 int entis_get_screen();
+bool entis_font_check_background();
+uint32_t entis_get_color(uint16_t index);
 
 void entis_set_color(uint32_t color);
 void entis_set_color_rgb(uint32_t r, uint32_t g, uint32_t b);
@@ -72,6 +82,7 @@ entis_button_event entis_poll_button();
 
 void entis_clear_events();
 
+void entis_erase(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
 void entis_point(uint16_t x, uint16_t y);
 void entis_segment(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 void entis_line(uint16_t* x, uint16_t* y, uint16_t n);
@@ -100,6 +111,8 @@ void entis_fill_circle(uint16_t x, uint16_t y, uint16_t radius);
 
 void entis_draw_string(uint16_t x, uint16_t y, const char* fmt, ...);
 void entis_erase_string(uint16_t x, uint16_t y, const char* fmt, ...);
+uint16_t entis_string_width(const char* fmt, ...);
+uint16_t entis_string_height(const char* fmt, ...);
 
 uint16_t entis_get_pixel_width();
 uint16_t entis_get_pixel_height();
@@ -108,5 +121,12 @@ void entis_set_pixel(uint16_t x, uint16_t y);
 void entis_pixel_set_pixel(uint16_t x, uint16_t y);
 
 void entis_pause(uint64_t seconds, uint64_t nanoseconds);
+
+Button entis_button(char* text, uint16_t x, uint16_t y, uint16_t width, uint16_t height);
+void entis_button_fg(Button* button, uint32_t normal, uint32_t hover);
+void entis_button_bg(Button* button, uint32_t normal, uint32_t hover);
+bool entis_handle_button(Button* button, EntisEvent event);
+void entis_draw_button(Button button);
+void entis_erase_button(Button button);
 
 #endif  // ENTIS_ENTIS_H_

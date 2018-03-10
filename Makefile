@@ -8,6 +8,7 @@ export INCLUDE_DIR= include
 export BUILD_DIR= build
 export DOC_DIR= docs
 export BASE_PATH=$(shell pwd)
+export TYPE=lib
 
 export COMPILER=clang
 export CFLAGS= -Wall -MMD -c
@@ -56,7 +57,7 @@ clean: clean-source
 
 .PHONY : install
 install: source root-access install-source
-	if [ $(TYPE) == "lib" ] && ! [ -d "$(INSTALL_PATH)/include/$(NAME)" ]; then \
+	if [ "$(TYPE)" == "lib" ] && ! [ -d "$(INSTALL_PATH)/include/$(NAME)" ]; then \
 	  $(call print,Installing include directory,$(INSTALL_COLOR));\
 	  sudo mkdir $(INSTALL_PATH)/include/ -p;\
 	  sudo cp $(INCLUDE_DIR)/ $(INSTALL_PATH)/include/$(NAME)/ -r;\
@@ -64,7 +65,7 @@ install: source root-access install-source
 
 .PHONY : uninstall
 uninstall: root-access uninstall-source
-	if [ $(TYPE) == "lib" ] && [ -d "$(INSTALL_PATH)/include/$(NAME)" ]; then \
+	if [ "$(TYPE)" == "lib" ] && [ -d "$(INSTALL_PATH)/include/$(NAME)" ]; then \
 	  $(call print,Uninstalling include directory,$(INSTALL_COLOR));\
 	  sudo rm $(INSTALL_PATH)/include/$(NAME) -rf;\
 	fi
