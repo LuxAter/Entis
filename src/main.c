@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include "entis.h"
+#include <X11/Xlib.h>
 
 /* int main() { */
 /*   entis_init("Entis", 500, 500, 0, NULL); */
@@ -29,17 +30,23 @@ int main(int argc, char* argv[]) {
   entis_set_font("clean", 30);
   entis_set_pixel_size(50, 50);
   entis_clear();
-  Button button = entis_button("Hello World", 50, 50, 300, 100);
-  entis_button_bg(&button, 0xFF00FF, 0x00FFFF);
-  entis_button_fg(&button, 0x0000FF, 0xFF0000);
-    entis_draw_button(button);
+  /* Button button = entis_button("Hello World", 50, 50, 300, 100); */
+  /* entis_button_bg(&button, 0xFF00FF, 0x00FFFF); */
+  /* entis_button_fg(&button, 0x0000FF, 0xFF0000); */
+  entis_rectangle(0, 0, 500, 100);
+  entis_draw_string_center(0, 0, 500, 100, "TESTING");
+  /* entis_draw_string(50, 50, "TESTING"); */
+  XAutoRepeatOn(entis_get_connection());
   while (true) {
     EntisEvent event = entis_wait_event();
-    if(entis_handle_button(&button, event)){
-      entis_erase_button(button);
-    }
+    /* if(entis_handle_button(&button, event)){ */
+    /*   entis_erase_button(button); */
+    /* } */
+    /* entis_draw_button(button); */
     if (event.type == ENTIS_KEY_PRESS && event.key.keysym == (int)'q') {
       break;
+    }else if(event.type == ENTIS_KEY_PRESS || event.type == ENTIS_KEY_RELEASE){
+      printf("KEY<%c>\n", event.key.keysym);
     }
   }
   /* xcb_generic_event_t* event; */

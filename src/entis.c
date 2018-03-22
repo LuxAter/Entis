@@ -272,7 +272,6 @@ EntisEvent entis_poll_event() {
   EntisEvent event = entis_event_poll_event();
   while (true) {
     switch (event.type) {
-      case ENTIS_NO_EXPOSURE:
       case ENTIS_EXPOSE: {
         entis_copy_pixmap();
         entis_flush();
@@ -289,6 +288,9 @@ EntisEvent entis_poll_event() {
         break;
       }
       case ENTIS_MAP_NOTIFY: {
+        break;
+      }
+      case ENTIS_NO_EXPOSURE: {
         break;
       }
       default: { return event; }
@@ -344,7 +346,7 @@ void entis_point(uint16_t x, uint16_t y) {
   XDrawPoint(connection_, pixmap_, pixmap_gcontext_, x, y);
 }
 void entis_segment(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
-  XDrawLine(connection_, pixmap_, pixmap_gcontext_, x0, y1, x1, y1);
+  XDrawLine(connection_, pixmap_, pixmap_gcontext_, x0, y0, x1, y1);
 }
 void entis_line(uint16_t* x, uint16_t* y, uint16_t n) {
   XPoint points[n];
@@ -454,6 +456,24 @@ void entis_draw_string(uint16_t x, uint16_t y, const char* fmt, ...) {
   XDrawString(connection_, pixmap_, pixmap_font_gcontext_, x, y, text,
               strlen(text));
 }
+void entis_draw_string_center(uint16_t x, uint16_t y, uint16_t width,
+                              uint16_t height, const char* fmt, ...) {
+  char* text = malloc(255);
+  va_list args;
+  va_start(args, fmt);
+  vsprintf(text, fmt, args);
+  va_end(args);
+  uint16_t disp_x = x + ((width - entis_string_width(text)) / 2);
+  uint16_t disp_y = y + ((height + entis_string_height(text)) / 2);
+  if (enable_font_background_ == true) {
+    uint16_t text_width = XTextWidth(font_, text, strlen(text));
+    uint16_t text_height = font_->max_bounds.ascent + font_->max_bounds.descent;
+    XFillRectangle(connection_, pixmap_, pixmap_font_bg_gcontext_, disp_x,
+                   disp_y, text_width, text_height);
+  }
+  XDrawString(connection_, pixmap_, pixmap_font_gcontext_, disp_x, disp_y, text,
+              strlen(text));
+}
 void entis_erase_string(uint16_t x, uint16_t y, const char* fmt, ...) {
   char* text = malloc(255);
   va_list args;
@@ -463,6 +483,20 @@ void entis_erase_string(uint16_t x, uint16_t y, const char* fmt, ...) {
   uint16_t text_width = XTextWidth(font_, text, strlen(text));
   uint16_t text_height = font_->max_bounds.ascent + font_->max_bounds.descent;
   XFillRectangle(connection_, pixmap_, pixmap_bg_gcontext_, x, y - text_height,
+                 text_width, text_height);
+}
+void entis_erase_string_center(uint16_t x, uint16_t y, uint16_t width,
+                               uint16_t height, const char* fmt, ...) {
+  char* text = malloc(255);
+  va_list args;
+  va_start(args, fmt);
+  vsprintf(text, fmt, args);
+  va_end(args);
+  uint16_t disp_x = x + ((width - entis_string_width(text)) / 2);
+  uint16_t disp_y = y + ((height + entis_string_height(text)) / 2);
+  uint16_t text_width = XTextWidth(font_, text, strlen(text));
+  uint16_t text_height = font_->max_bounds.ascent + font_->max_bounds.descent;
+  XFillRectangle(connection_, pixmap_, pixmap_bg_gcontext_, disp_x, disp_y,
                  text_width, text_height);
 }
 uint16_t entis_string_width(const char* fmt, ...) {
@@ -566,6 +600,6 @@ void entis_draw_button(Button button) {
   entis_font_color(colors[2]);
   entis_font_set_background(font_bg);
 }
-void entis_erase_button(Button button){
+void entis_erase_button(Button button) {
   entis_erase(button.x, button.y, button.width, button.height);
 }

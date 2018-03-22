@@ -110,7 +110,9 @@ void entis_circle(uint16_t x, uint16_t y, uint16_t radius);
 void entis_fill_circle(uint16_t x, uint16_t y, uint16_t radius);
 
 void entis_draw_string(uint16_t x, uint16_t y, const char* fmt, ...);
+void entis_draw_string_center(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const char* fmt, ...);
 void entis_erase_string(uint16_t x, uint16_t y, const char* fmt, ...);
+void entis_erase_string_center(uint16_t x, uint16_t y, uint16_t wight, uint16_t height, const char* fmt, ...);
 uint16_t entis_string_width(const char* fmt, ...);
 uint16_t entis_string_height(const char* fmt, ...);
 
