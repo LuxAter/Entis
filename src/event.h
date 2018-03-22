@@ -47,8 +47,8 @@ typedef struct entis_key_event {
   int16_t x, y;
   int16_t root_x, root_y;
   uint16_t state;
-  uint8_t keycode;
-  uint8_t keysym;
+  uint16_t keycode;
+  uint16_t keysym;
 } entis_key_event;
 typedef struct entis_button_event {
   enum EventType type;

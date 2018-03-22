@@ -5,6 +5,7 @@
 #include <xcb/xcb.h>
 
 #include "event.h"
+#include "key_codes.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -23,6 +24,13 @@
 #define ENTIS_MAGENTA 0xFF00FF
 #define ENTIS_CYAN 0x00FFFF
 #define ENTIS_WHITE 0xFFFFFF
+#define ENTIS_DARK_RED 0x800000
+#define ENTIS_DARK_GREEN 0x008000
+#define ENTIS_DARK_BLUE 0x000080
+#define ENTIS_DARK_YELLOW 0x808000
+#define ENTIS_DARK_MAGENTA 0x800080
+#define ENTIS_DARK_CYAN 0x008080
+#define ENTIS_DARK_WHITE 0x808080
 
 void entis_init(const char* title, unsigned int w, unsigned int h,
                 uint32_t value_mask, void* value_list);

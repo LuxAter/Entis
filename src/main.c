@@ -10,7 +10,7 @@
 int main(int argc, char* argv[]) {
   entis_init("Entis", 500, 500, 0, NULL);
   entis_set_background(ENTIS_BLACK);
-  entis_set_color(ENTIS_WHITE);
+  entis_set_color(ENTIS_DARK_CYAN);
   entis_set_pixel_size(50, 50);
   entis_clear();
   for (int i = 0; i < entis_get_pixel_width(); i++) {
@@ -27,8 +27,8 @@ int main(int argc, char* argv[]) {
   entis_set_color(ENTIS_MAGENTA);
   /* entis_reg_poly(200, 200, 50, 50, 100, 0); */
   entis_key_event event = entis_wait_key();
-  while (event.keycode != (int)'q') {
-    printf("DATA: %d STATE: %d\n", event.keycode, event.state);
+  while (event.keycode != KEY_ESCAPE) {
+    printf("KEYCODE: %d SYM: %c\n", event.keycode, event.keysym);
     /* entis_point(event.x, event.y); */
     /* entis_pixel_set_pixel(event.x, event.y); */
     /* entis_update(); */
