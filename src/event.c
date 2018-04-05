@@ -114,6 +114,7 @@ entis_key_event entis_event_parse_key(xcb_generic_event_t* event,
         ev->state,
         entis_parse_keycode(ev->detail),
         entis_keycode_to_keysym(entis_parse_keycode(ev->detail), ev->state)};
+    entis_set_key_state(entis_parse_keycode(ev->detail), true);
   } else if (type == ENTIS_KEY_RELEASE) {
     xcb_key_release_event_t* ev = (xcb_key_release_event_t*)event;
     return (entis_key_event){
@@ -126,6 +127,7 @@ entis_key_event entis_event_parse_key(xcb_generic_event_t* event,
         ev->state,
         entis_parse_keycode(ev->detail),
         entis_keycode_to_keysym(entis_parse_keycode(ev->detail), ev->state)};
+    entis_set_key_state(entis_parse_keycode(ev->detail), false);
   } else {
     return (entis_key_event){ENTIS_NO_EVENT, 0, 0, 0, 0, 0, 0, 0};
   }
