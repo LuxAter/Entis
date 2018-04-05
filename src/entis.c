@@ -218,9 +218,16 @@ void entis_clear() {
                           (xcb_rectangle_t[]){{0, 0, width_, height_}});
 }
 
-EntisEvent entis_wait_event() {
+void entis_sleep(double sec){
+  double seconds;
+  double nanosec = modf(sec, &seconds);
+  nanosec *= 1e9;
+  nanosleep(&(struct timespec){(int)seconds, (int)nanosec}, NULL);
+}
+
+entis_event entis_wait_event() {
   entis_update();
-  EntisEvent event = entis_event_wait_event();
+  entis_event event = entis_event_wait_event();
   while (true) {
     switch (event.type) {
       case ENTIS_EXPOSE: {
@@ -251,9 +258,9 @@ EntisEvent entis_wait_event() {
   return event;
 }
 
-EntisEvent entis_poll_event() {
+entis_event entis_poll_event() {
   entis_update();
-  EntisEvent event = entis_event_poll_event();
+  entis_event event = entis_event_poll_event();
   while (true) {
     switch (event.type) {
       case ENTIS_EXPOSE: {
@@ -275,7 +282,7 @@ EntisEvent entis_poll_event() {
         break;
       }
       case ENTIS_NO_EXPOSURE: {
-        return (EntisEvent){ENTIS_NO_EVENT};
+        return (entis_event){ENTIS_NO_EVENT};
         break;
       }
       default: { return event; }
@@ -285,16 +292,16 @@ EntisEvent entis_poll_event() {
   return event;
 }
 
-EntisEvent entis_wait_event_type(uint32_t type) {
-  EntisEvent event = entis_wait_event();
+entis_event entis_wait_event_type(uint32_t type) {
+  entis_event event = entis_wait_event();
   while ((event.type & type) == false) {
     event = entis_wait_event();
   }
   return event;
 }
 
-EntisEvent entis_poll_event_type(uint32_t type) {
-  EntisEvent event = entis_poll_event();
+entis_event entis_poll_event_type(uint32_t type) {
+  entis_event event = entis_poll_event();
   while ((event.type & type) == false && event.type != ENTIS_NO_EVENT) {
     event = entis_poll_event();
   }
@@ -318,7 +325,7 @@ entis_button_event entis_poll_button() {
 }
 
 void entis_clear_events() {
-  EntisEvent event = entis_poll_event();
+  entis_event event = entis_poll_event();
   while (event.type != ENTIS_NO_EVENT && event.type != ENTIS_NO_EXPOSURE) {
     event = entis_poll_event();
   }

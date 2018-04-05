@@ -24,7 +24,7 @@ enum KeyCodes {
   KEY_9 = 57,
   KEY_SEMICOLON = 59,
   KEY_EQUAL = 61,
-  KEY_A = 64,
+  KEY_A = 65,
   KEY_B = 66,
   KEY_C = 67,
   KEY_D = 68,

@@ -150,7 +150,7 @@ uint16_t entis_keycode_to_keysym(uint16_t keycode, uint16_t state) {
   flags[5] = (state & WIN);
   bool should_cap = (flags[0] ^ flags[1]);
   uint16_t sym = 0;
-  if (keycode >= 64 && keycode <= 90) {
+  if (keycode >= 65 && keycode <= 90) {
     // LETTERS
     if (should_cap == true) {
       sym = keycode;

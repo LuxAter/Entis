@@ -7,15 +7,15 @@
 #include "entis.h"
 #include "key_codes.h"
 
-EntisEvent entis_event_wait_event() {
-  EntisEvent ret;
+entis_event entis_event_wait_event() {
+  entis_event ret;
   xcb_generic_event_t* event = xcb_wait_for_event(entis_get_connection());
   ret = entis_event_parse_event(event);
   free(event);
   return ret;
 }
-EntisEvent entis_event_poll_event() {
-  EntisEvent ret;
+entis_event entis_event_poll_event() {
+  entis_event ret;
   xcb_generic_event_t* event = xcb_poll_for_event(entis_get_connection());
   if (event != NULL) {
     ret = entis_event_parse_event(event);
@@ -394,8 +394,8 @@ entis_mapping_event entis_event_parse_mapping(xcb_generic_event_t* event,
   }
 }
 
-EntisEvent entis_event_parse_event(xcb_generic_event_t* event) {
-  EntisEvent ret;
+entis_event entis_event_parse_event(xcb_generic_event_t* event) {
+  entis_event ret;
   ret.type = entis_event_parse_type(event);
   switch (entis_event_parse_type(event)) {
     case ENTIS_KEY_PRESS:

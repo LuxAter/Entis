@@ -188,7 +188,7 @@ typedef struct entis_mapping_event {
   uint8_t request, first_keycode, count;
 } entis_mapping_event;
 
-typedef struct EntisEvent {
+typedef struct entis_event {
   enum EventType type;
   union {
     entis_key_event key;
@@ -218,10 +218,10 @@ typedef struct EntisEvent {
     entis_selection_request_event selection_request;
     entis_mapping_event mapping;
   };
-} EntisEvent;
+} entis_event;
 
-EntisEvent entis_event_wait_event();
-EntisEvent entis_event_poll_event();
+entis_event entis_event_wait_event();
+entis_event entis_event_poll_event();
 enum EventType entis_event_parse_type(xcb_generic_event_t* event);
 entis_key_event entis_event_parse_key(xcb_generic_event_t* event,
                                       enum EventType type);
@@ -275,6 +275,6 @@ entis_selection_request_event entis_event_parse_selection_request(
     xcb_generic_event_t* event, enum EventType type);
 entis_mapping_event entis_event_parse_mapping(xcb_generic_event_t* event,
                                               enum EventType type);
-EntisEvent entis_event_parse_event(xcb_generic_event_t* event);
+entis_event entis_event_parse_event(xcb_generic_event_t* event);
 
 #endif  // ENTIS_EVENT_H_

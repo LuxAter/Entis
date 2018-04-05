@@ -11,10 +11,10 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-#define D30 0.52359877559829881565
-#define D45 0.78539816339744827899
-#define D60 1.04719755119659763131
-#define D90 1.57079632679489655799
+#define ENTIS_D30 0.52359877559829881565
+#define ENTIS_D45 0.78539816339744827899
+#define ENTIS_D60 1.04719755119659763131
+#define ENTIS_D90 1.57079632679489655799
 
 #define ENTIS_BLACK 0x000000
 #define ENTIS_RED 0xFF0000
@@ -58,11 +58,13 @@ void entis_copy_pixmap();
 void entis_update();
 void entis_clear();
 
-EntisEvent entis_wait_event();
-EntisEvent entis_poll_event();
+void entis_sleep(double sec);
 
-EntisEvent entis_wait_event_type(uint32_t type);
-EntisEvent entis_poll_event_type(uint32_t type);
+entis_event entis_wait_event();
+entis_event entis_poll_event();
+
+entis_event entis_wait_event_type(uint32_t type);
+entis_event entis_poll_event_type(uint32_t type);
 
 entis_key_event entis_wait_key();
 entis_key_event entis_poll_key();

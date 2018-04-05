@@ -20,12 +20,16 @@ int main(int argc, char* argv[]) {
     }
   }
   entis_set_color(ENTIS_MAGENTA);
-  entis_key_event event = entis_wait_key();
-  while (event.keycode != KEY_ESCAPE) {
-    if (event.keycode != 0) {
-      printf("KEYCODE: %d SYM: %c\n", event.keycode, event.keysym);
+  entis_event event = entis_wait_event();
+  while (event.key.keycode != KEY_ESCAPE) {
+    if (event.type == ENTIS_KEY_RELEASE) {
+      if (event.key.keycode != 0) {
+        printf("RELEASE: KEYCODE: %d SYM: %c\n", event.key.keycode, event.key.keysym);
+      }
+    }else if (event.type == ENTIS_BUTTON_RELEASE){
+      entis_pixel_set_pixel(event.button.x, event.button.y);
     }
-    event = entis_poll_key();
+    event = entis_wait_event();
   }
   entis_term();
   return 0;
