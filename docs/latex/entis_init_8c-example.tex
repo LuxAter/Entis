@@ -1,0 +1,21 @@
+\hypertarget{entis_init_8c-example}{}\section{entis\+\_\+init.\+c}
+Initialize Entis library.\+This {\bfseries must} be called before all other Entis calls. It generates the X\+CB connection to the X server, which is necessary for almost all functions present in the Entis library. Thus be sure to call this function before any other functions from Entis.
+
+
+\begin{DoxyParams}{Parameters}
+{\em title} & Title of the window to generate. \\
+\hline
+{\em w} & Desired width of the window. \\
+\hline
+{\em h} & Desired height of the window. \\
+\hline
+{\em value\+\_\+mask} & Bit mask of values to alter the window. \\
+\hline
+{\em value\+\_\+list} & Values associated with provided bits in {\ttfamily value\+\_\+mask}.\\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyCodeInclude}
+entis\_init(\textcolor{stringliteral}{"Entis Window"}, 500, 500, 0, NULL);
+\end{DoxyCodeInclude}
+ 

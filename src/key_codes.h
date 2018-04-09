@@ -1,6 +1,10 @@
 #ifndef ENTIS_KEY_CODES_H_
 #define ENTIS_KEY_CODES_H_
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 #include <inttypes.h>
 #include <stdbool.h>
 
@@ -88,5 +92,9 @@ uint16_t entis_keycode_to_keysym(uint16_t keycode, uint16_t state);
 
 bool entis_key_pressed(uint16_t keycode);
 void entis_set_key_state(uint16_t keycode, bool state);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // ENTIS_KEY_CODES_H_

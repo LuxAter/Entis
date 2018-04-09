@@ -14,6 +14,7 @@ export CFLAGS= -Wall -MMD -c
 export INSTALL_PATH=/usr/local
 
 export COMMON_INCLUDE=$(INCLUDE)
+export TYPE= lib
 
 export SECTION_COLOR=\033[1;97m
 export TARGET_COLOR=\033[0;34m
@@ -55,7 +56,7 @@ clean: clean-source
 
 .PHONY : install
 install: source root-access install-source
-	if [ $(TYPE) == "lib" ] && ! [ -d "$(INSTALL_PATH)/include/$(NAME)" ]; then \
+	if [ "$(TYPE)" == "lib" ] && ! [ -d "$(INSTALL_PATH)/include/$(NAME)" ]; then \
 	  $(call print,Installing include directory,$(INSTALL_COLOR));\
 	  sudo mkdir $(INSTALL_PATH)/include/ -p;\
 	  sudo cp $(INCLUDE_DIR)/ $(INSTALL_PATH)/include/$(NAME)/ -r;\

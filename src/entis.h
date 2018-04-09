@@ -1,6 +1,10 @@
 #ifndef ENTIS_ENTIS_H_
 #define ENTIS_ENTIS_H_
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 #include <stdbool.h>
 #include <xcb/xcb.h>
 
@@ -32,12 +36,55 @@
 #define ENTIS_DARK_CYAN 0x008080
 #define ENTIS_DARK_WHITE 0x808080
 
+/**
+ * \defgroup General
+ * General functions for support of the Entis library.
+ * @{ */
+
+/**
+ * @brief Initialize Entis library.
+ *
+ * This **must** be called before all other Entis calls. It generates the XCB
+ * connection to the X server, which is necessary for almost all functions
+ * present in the Entis library. Thus be sure to call this function before any
+ * other functions from Entis. It also generate a window with provided
+ * specifics.
+ *
+ * @param title Title of the window to generate.
+ * @param w Desired width of the window.
+ * @param h Desired height of the window.
+ * @param value_mask Bit mask of values to alter the window.
+ * @param value_list Values associated with provided bits in `value_mask`.
+ */
 void entis_init(const char* title, unsigned int w, unsigned int h,
                 uint32_t value_mask, void* value_list);
+/**
+ * @brief Terminates Entis library.
+ *
+ * This function **must** be the final Entis function called. After it is
+ * called no other Entis function will work properly. It closes the XCB
+ * connection to the X server, which is necessary for almost all functions.
+ * This function will also close the generated window.
+ */
 void entis_term();
 
+/**
+ * @brief Checks if XCB connection is valid
+ *
+ * Checks if the currently established XCB connection to the X server is valid.
+ *
+ * @return `true` or `false`.
+ */
 bool entis_connection_valid();
+/**
+ * @brief Flush XCB connections
+ *
+ * Sends all requests to the X server. This must be done for any requests to be
+ * acted upon.
+ */
 void entis_flush();
+
+/**  @} */
 
 xcb_connection_t* entis_get_connection();
 xcb_screen_t* entis_get_screen();
@@ -105,5 +152,9 @@ uint16_t entis_get_pixel_height();
 void entis_set_pixel_size(uint16_t width, uint16_t height);
 void entis_set_pixel(uint16_t x, uint16_t y);
 void entis_pixel_set_pixel(uint16_t x, uint16_t y);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // ENTIS_ENTIS_H_

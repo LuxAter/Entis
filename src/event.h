@@ -1,6 +1,10 @@
 #ifndef ENTIS_EVENT_H_
 #define ENTIS_EVENT_H_
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 #include <stdbool.h>
 #include <xcb/xcb.h>
 
@@ -276,5 +280,9 @@ entis_selection_request_event entis_event_parse_selection_request(
 entis_mapping_event entis_event_parse_mapping(xcb_generic_event_t* event,
                                               enum EventType type);
 entis_event entis_event_parse_event(xcb_generic_event_t* event);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // ENTIS_EVENT_H_

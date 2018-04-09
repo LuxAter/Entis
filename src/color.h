@@ -1,6 +1,10 @@
 #ifndef ENTIS_COLOR_H_
 #define ENTIS_COLOR_H_
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 #include <inttypes.h>
 
 typedef struct entis_color {
@@ -34,5 +38,9 @@ void entis_set_palette_color_struct(struct entis_palette* palette, int index,
 
 struct entis_color entis_palette_get_color(struct entis_palette palette,
                                            int index);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // ENTIS_COLOR_H_

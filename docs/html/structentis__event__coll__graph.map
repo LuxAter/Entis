@@ -1,0 +1,28 @@
+<map id="entis_event" name="entis_event">
+<area shape="rect" id="node2" href="$structentis__configure__event.html" title="entis_configure_event" alt="" coords="16,15,165,41"/>
+<area shape="rect" id="node3" href="$structentis__destroy__event.html" title="entis_destroy_event" alt="" coords="21,65,160,92"/>
+<area shape="rect" id="node4" href="$structentis__selection__request__event.html" title="entis_selection_request\l_event" alt="" coords="11,117,170,158"/>
+<area shape="rect" id="node5" href="$structentis__map__request__event.html" title="entis_map_request_event" alt="" coords="5,183,176,209"/>
+<area shape="rect" id="node6" href="$structentis__resize__event.html" title="entis_resize_event" alt="" coords="25,233,156,260"/>
+<area shape="rect" id="node7" href="$structentis__no__expose__event.html" title="entis_no_expose_event" alt="" coords="11,284,170,311"/>
+<area shape="rect" id="node8" href="$structentis__focus__event.html" title="entis_focus_event" alt="" coords="27,335,155,361"/>
+<area shape="rect" id="node9" href="$structentis__configure__request__event.html" title="entis_configure_request\l_event" alt="" coords="11,386,171,427"/>
+<area shape="rect" id="node10" href="$structentis__expose__event.html" title="entis_expose_event" alt="" coords="21,452,160,479"/>
+<area shape="rect" id="node11" href="$structentis__visibility__event.html" title="entis_visibility_event" alt="" coords="19,503,162,529"/>
+<area shape="rect" id="node12" href="$structentis__map__event.html" title="entis_map_event" alt="" coords="30,553,151,580"/>
+<area shape="rect" id="node13" href="$structentis__button__event.html" title="entis_button_event" alt="" coords="25,604,157,631"/>
+<area shape="rect" id="node14" href="$structentis__reparent__event.html" title="entis_reparent_event" alt="" coords="19,655,162,681"/>
+<area shape="rect" id="node15" href="$structentis__unmap__event.html" title="entis_unmap_event" alt="" coords="23,705,158,732"/>
+<area shape="rect" id="node16" href="$structentis__crossing__event.html" title="entis_crossing_event" alt="" coords="18,756,163,783"/>
+<area shape="rect" id="node17" href="$structentis__motion__event.html" title="entis_motion_event" alt="" coords="23,807,158,833"/>
+<area shape="rect" id="node18" href="$structentis__circulate__request__event.html" title="entis_circulate_request\l_event" alt="" coords="13,858,169,899"/>
+<area shape="rect" id="node19" href="$structentis__graphics__expose__event.html" title="entis_graphics_expose\l_event" alt="" coords="13,923,168,965"/>
+<area shape="rect" id="node20" href="$structentis__property__event.html" title="entis_property_event" alt="" coords="19,989,162,1016"/>
+<area shape="rect" id="node21" href="$structentis__gravity__event.html" title="entis_gravity_event" alt="" coords="23,1040,158,1067"/>
+<area shape="rect" id="node22" href="$structentis__selection__event.html" title="entis_selection_event" alt="" coords="17,1091,165,1117"/>
+<area shape="rect" id="node23" href="$structentis__circulate__event.html" title="entis_circulate_event" alt="" coords="18,1141,163,1168"/>
+<area shape="rect" id="node24" href="$structentis__key__event.html" title="entis_key_event" alt="" coords="32,1192,149,1219"/>
+<area shape="rect" id="node25" href="$structentis__mapping__event.html" title="entis_mapping_event" alt="" coords="18,1243,163,1269"/>
+<area shape="rect" id="node26" href="$structentis__selection__clear__event.html" title="entis_selection_clear\l_event" alt="" coords="19,1294,163,1335"/>
+<area shape="rect" id="node27" href="$structentis__create__event.html" title="entis_create_event" alt="" coords="25,1360,157,1387"/>
+</map>
