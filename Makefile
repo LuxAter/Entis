@@ -8,7 +8,7 @@ export BUILD_DIR= build
 export DOC_DIR= docs
 export BASE_PATH=$(shell pwd)
 
-export COMPILER=clang
+export COMPILER=gcc
 export CFLAGS= -Wall -MMD -c
 
 export INSTALL_PATH=/usr/local
@@ -58,8 +58,8 @@ clean: clean-source
 install: source root-access install-source
 	if [ "$(TYPE)" == "lib" ] && ! [ -d "$(INSTALL_PATH)/include/$(NAME)" ]; then \
 	  $(call print,Installing include directory,$(INSTALL_COLOR));\
-	  sudo mkdir $(INSTALL_PATH)/include/ -p;\
-	  sudo cp $(INCLUDE_DIR)/ $(INSTALL_PATH)/include/$(NAME)/ -r;\
+	  sudo mkdir $(INSTALL_PATH)/include/$(NAME) -p;\
+	  sudo cp $(SOURCE_DIR)/*.h $(INSTALL_PATH)/include/$(NAME)/ -r;\
 	fi
 
 .PHONY : uninstall

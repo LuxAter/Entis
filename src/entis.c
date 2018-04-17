@@ -152,7 +152,7 @@ void entis_set_color_rgb(uint32_t r, uint32_t g, uint32_t b) {
 }
 void entis_set_color_drgb(double r, double g, double b) {
   entis_set_color(0x010000 * (uint32_t)(255 * r) +
-                  0x000100 * (uint32_t)(256 * g) + (uint32_t)(256 * b));
+                  0x000100 * (uint32_t)(255 * g) + (uint32_t)(255 * b));
 }
 
 void entis_set_background(uint32_t color) {
