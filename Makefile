@@ -75,9 +75,9 @@ LIB_OBJS = $(LIB_FILES:%=$(ROOT)/$(BUILD_DIR)/%.o)
 	EXE_FILES = $(shell find "$(SOURCE_DIR)" -name "*.c") $(shell find "$(SOURCE_DIR)" -name "*.cpp")
 	EXE_OBJS = $(EXE_FILES:%=$(ROOT)/$(BUILD_DIR)/%.o)
 
-all: source doc
+all: source
 
-clean: clean-source
+clean: clean-source clean-docs
 
 install: install-source
 
