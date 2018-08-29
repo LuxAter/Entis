@@ -47,7 +47,7 @@ void entis_init(const char* title, unsigned int w, unsigned int h,
   } else {
     uint32_t internal_value[1] = {
         XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
-        XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
+        XCB_EVENT_MASK_BUTTON_RELEASE |
         XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW |
         XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE |
         XCB_EVENT_MASK_STRUCTURE_NOTIFY};
@@ -227,8 +227,9 @@ void entis_sleep(double sec){
 
 entis_event entis_wait_event() {
   entis_update();
-  entis_event event = entis_event_wait_event();
+  entis_event event;
   while (true) {
+    event = entis_event_wait_event();
     switch (event.type) {
       case ENTIS_EXPOSE: {
         entis_copy_pixmap();
@@ -253,15 +254,15 @@ entis_event entis_wait_event() {
       }
       default: { return event; }
     }
-    event = entis_event_wait_event();
   }
   return event;
 }
 
 entis_event entis_poll_event() {
   entis_update();
-  entis_event event = entis_event_poll_event();
+  entis_event event;
   while (true) {
+    event = entis_event_poll_event();
     switch (event.type) {
       case ENTIS_EXPOSE: {
         entis_copy_pixmap();
@@ -287,7 +288,6 @@ entis_event entis_poll_event() {
       }
       default: { return event; }
     }
-    event = entis_event_poll_event();
   }
   return event;
 }
