@@ -1,140 +1,164 @@
 SHELL = /bin/bash
-
-export NAME= entis
-export LINK= -lxcb -lm
-export INCLUDE=
-export SOURCE_DIR= src
-export BUILD_DIR= build
-export DOC_DIR= docs
-export BASE_PATH=$(shell pwd)
-
-export COMPILER=gcc
-export CFLAGS= -Wall -MMD -c
-
-export INSTALL_PATH=/usr/local
-
-export COMMON_INCLUDE=$(INCLUDE)
-export TYPE= lib
-
-export SECTION_COLOR=\033[1;97m
-export TARGET_COLOR=\033[0;34m
-export LINK_COLOR=\033[0;35m
-export CLEAN_COLOR=\033[0;33m
-export COMPILE_COLOR=\033[0;32m
-export INSTALL_COLOR=\033[0;36m
-export ERROR_COLOR=\033[1;31m
-export NO_COLOR=\033[m
-
 ifndef .VERBOSE
   .SILENT:
 endif
 
-define print_section
-str="$(1)";\
-    line_length=$${#str};\
-    printf "%b%s\n" "$(SECTION_COLOR)" "$$str";\
-    while [ $$line_length -gt 0 ]; do\
-      printf "=";\
-      let line_length=line_length-1;\
-    done;\
-    printf "%b\n" "$(NO_COLOR)"
-endef
+NAME=entis
 
-define print
-printf "%b%s%b\n" "$(2)" "$(1)" "$(NO_COLOR)"
-endef
+CC=gcc
+CXX=g++
+CFLAGS=-Wall
+CXXFLAGS=-Wall
+LINK=-lxcb -lm
+INCLUDE=
 
+SOURCE_DIR=src
+INCLUDE_DIR=
+BUILD_DIR=build
+DOC_DIR=docs
+TEST_DIR=test
+EXAMPLE_DIR=example
+INSTALL_PATH?=/usr/local
+ROOT=$(shell pwd)
+
+SCAN_COLOR=\033[1;35m
+BUILD_COLOR=\033[32m
+CLEAN_COLOR=\033[1;33m
+LINK_COLOR=\033[1;32m
+INSTALL_COLOR=\033[01;36m
+CMD_COLOR=\033[1;34m
+HELP_COLOR=\033[1;34m
+
+define scan_target
+printf "%b%s%b\n" "$(SCAN_COLOR)" "Scaning dependencies for target $(1)" "\033[0m"
+endef
+define complete_target
+printf "%s\n" "Built target $(1)"
+endef
+define clean_target
+printf "%b%s%b\n" "$(CLEAN_COLOR)" "Cleaning target $(1)" "\033[0m"
+endef
+define install_target
+printf "%b%s%b\n" "$(INSTALL_COLOR)" "Installing target $(1)" "\033[0m"
+endef
+define uninstall_target
+printf "%b%s%b\n" "$(INSTALL_COLOR)" "Unnstalling target $(1)" "\033[0m"
+endef
+define print_build_c
+str=$$(realpath --relative-to="$(ROOT)" "$(1)");\
+    printf "%b%s%b\n" "$(BUILD_COLOR)" "Building C object $$str" "\033[0m"
+endef
+define print_build_cpp
+str=$$(realpath --relative-to="$(ROOT)" "$(1)");\
+    printf "%b%s%b\n" "$(BUILD_COLOR)" "Building Cpp object $$str" "\033[0m"
+endef
+define print_link_lib
+str=$$(realpath --relative-to="$(ROOT)" "$(1)");\
+    printf "%b%s%b\n" "$(LINK_COLOR)" "Linking static library $$str" "\033[0m"
+endef
+define print_link_exe
+str=$$(realpath --relative-to="$(ROOT)" "$(1)");\
+    printf "%b%s%b\n" "$(LINK_COLOR)" "Linking executable $$str" "\033[0m"
+endef
+define print_run_cmd
+printf "%b%s%b\n" "$(CMD_COLOR)" "Running '$(1)'" "\033[0m"
+endef
 define help
-printf "%b%*s%b: %s\n" "$(TARGET_COLOR)" 14 "$(1)" "$(NO_COLOR)" "$(2)"
+printf "%b%*s%b: %s\n" "$(HELP_COLOR)" 20 "$(1)" "\033[0m" "$(2)"
 endef
 
-.PHONY : all
-all: source
+LIB=$(ROOT)/$(BUILD_DIR)/lib$(NAME).a
+EXE=$(ROOT)/$(NAME)
 
-.PHONY : clean
-clean: clean-source 
+LIB_FILES = $(filter-out $(SOURCE_DIR)/main.cpp, $(filter-out $(SOURCE_DIR)/main.c, $(shell find "$(SOURCE_DIR)" -name "*.c")))
+LIB_OBJS = $(LIB_FILES:%=$(ROOT)/$(BUILD_DIR)/%.o)
+	EXE_FILES = $(shell find "$(SOURCE_DIR)" -name "*.c") $(shell find "$(SOURCE_DIR)" -name "*.cpp")
+	EXE_OBJS = $(EXE_FILES:%=$(ROOT)/$(BUILD_DIR)/%.o)
 
-.PHONY : install
-install: source root-access install-source
-	if [ "$(TYPE)" == "lib" ] && ! [ -d "$(INSTALL_PATH)/include/$(NAME)" ]; then \
-	  $(call print,Installing include directory,$(INSTALL_COLOR));\
-	  sudo mkdir $(INSTALL_PATH)/include/$(NAME) -p;\
-	  sudo cp $(SOURCE_DIR)/*.h $(INSTALL_PATH)/include/$(NAME)/ -r;\
-	fi
+all: source doc
 
-.PHONY : uninstall
-uninstall: root-access uninstall-source
-	if [ $(TYPE) == "lib" ] && [ -d "$(INSTALL_PATH)/include/$(NAME)" ]; then \
-	  $(call print,Uninstalling include directory,$(INSTALL_COLOR));\
-	  sudo rm $(INSTALL_PATH)/include/$(NAME) -rf;\
-	fi
+clean: clean-source
 
-.PHONY : help
-help:
-	$(call print_section,Makefile Help)
-	printf "List of all acceptable make targets\n\n"
-	$(call help,all,Builds external, source, and test files and projects)
-	$(call help,clean,Clean files created from external, source, and test)
-	$(call help,help,Display this help page)
-	$(call help,external,Builds external files and projects)
-	$(call help,clean-external,Cleans files created from external)
-	$(call help,source,Builds source files and projects)
-	$(call help,clean-source,Cleans files created from source)
-	$(call help,test,Builds test files and projects)
-	$(call help,clean-test,Cleans files created from test)
+install: install-source
 
-.PHONY : root-access
-root-access:
-	if [[ $$UID != 0 ]]; then \
-	  $(call print,Target requiers root access,$(ERROR_COLOR)); \
-	  exit 1; \
-	fi
+uninstall: uninstall-source
 
-.PHONY : external
-external:
-	$(call print_section,External Dependencies)
-	if [ -d "$(EXTERNAL_DIR)" ]; then cd "$(EXTERNAL_DIR)" && $(MAKE); fi
-.PHONY : clean-external
-clean-external:
-	$(call print_section,External Dependencies)
-	if [ -d "$(EXTERNAL_DIR)" ]; then cd "$(EXTERNAL_DIR)" && $(MAKE) clean; fi
+source: build-exe
 
-.PHONY : source
-source:
-	$(call print_section,Source Files)
-	if [ -d "$(SOURCE_DIR)" ]; then cd "$(SOURCE_DIR)" && $(MAKE); fi
-.PHONY : clean-source
-clean-source:
-	$(call print_section,Source Files)
-	if [ -d "$(SOURCE_DIR)" ]; then cd "$(SOURCE_DIR)" && $(MAKE) clean; fi
-.PHONY : install-source
-install-source:
-	$(call print_section,Source Files)
-	if [ -d "$(SOURCE_DIR)" ]; then cd "$(SOURCE_DIR)" && $(MAKE) install; fi
-.PHONY: uninstall-source
-uninstall-source:
-	$(call print_section,Source Files)
-	if [ -d "$(SOURCE_DIR)" ]; then cd "$(SOURCE_DIR)" && $(MAKE) uninstall; fi
-
-.PHONY : test
-test:
-	$(call print_section,Unit Tests)
-	if [ -d "$(TEST_DIR)" ]; then cd "$(TEST_DIR)" && $(MAKE); fi
-.PHONY : clean-test
-clean-test:
-	$(call print_section,Unit Tests)
-	if [ -d "$(TEST_DIR)" ]; then cd "$(TEST_DIR)" && $(MAKE) clean; fi
-
-.PHONY: docs
-docs:
-	$(call print_section,Documentation)
-	$(call print,Running doxygen...,$(COMPILE_COLOR))
+doc:
+	$(call print_run_cmd,doxygen)
 	doxygen
 
-.PHONY: clean-docs
 clean-docs:
-	$(call print_section,Documentation)
+	$(call clean_target,docs)
 	if [ -d "$(DOC_DIR)/html" ]; then rm "$(DOC_DIR)/html" -r ;fi
 	if [ -d "$(DOC_DIR)/latex" ]; then rm "$(DOC_DIR)/latex" -r ;fi
 	if [ -d "$(DOC_DIR)/xml" ]; then rm "$(DOC_DIR)/xml" -r ;fi
-	$(call print,Cleaned Documentation,$(CLEAN_COLOR))
+
+clean-source: clean-lib clean-exe
+	if [ -e "$(ROOT)/$(BUILD_DIR)/$(SOURCE_DIR)" ]; then rm $(ROOT)/$(BUILD_DIR)/$(SOURCE_DIR) -r; fi
+
+install-source: install-lib
+
+uninstall-source: uninstall-lib
+
+build-lib: pre-lib $(LIB)
+	$(call complete_target,$(shell basename $(LIB)))
+
+clean-lib:
+	$(call clean_target,$(shell basename $(LIB)))
+	if [ -e "$(LIB)" ]; then rm $(LIB); fi
+
+install-lib: build-lib
+	$(call install_target,$(shell basename $(LIB)))
+	mkdir -p $(INSTALL_PATH)/lib/
+	mkdir -p $(INSTALL_PATH)/include/$(NAME)/
+	cp $(LIB) $(INSTALL_PATH)/lib
+	if [ ! -z "$(INCLUDE_DIR)" ]; then cp -R $(INCLUDE_DIR)/ $(INSTALL_PATH)/include/$(NAME)/; fi
+	if [ ! -z "$(shell find $(SOURCE_DIR) -name "*.h")" ]; then cd $(SOURCE_DIR) && cp --parents $(shell cd $(SOURCE_DIR) && find . -name "*.h") $(INSTALL_PATH)/include/$(NAME); fi
+	if [ ! -z "$(shell find $(SOURCE_DIR) -name "*.hpp")" ]; then cd $(SOURCE_DIR) && cp --parents $(shell cd $(SOURCE_DIR) && find . -name "*.hpp") $(INSTALL_PATH)/include/$(NAME); fi
+
+uninstall-lib:
+	$(call uninstall_target,$(shell basename $(LIB)))
+	if [ ! -e "$(INSTALL_PATH)/lib/$(shell basename $(LIB))" ]; then rm "$(INSTALL_PATH)/lib/$(shell basename $(LIB))"; fi
+	if [ ! -e "$(INSTALL_PATH)/include/$(NAME)" ]; then rm "$(INSTALL_PATH)/include/$(NAME)" -r; fi
+
+$(LIB): $(LIB_OBJS)
+	$(call print_link_lib,$(shell basename $(LIB)))
+	ar rcs $@ $(LIB_OBJS)
+
+pre-lib:
+	$(call scan_target,$(shell basename $(LIB)))
+
+build-exe: build-lib pre-exe $(EXE)
+	$(call complete_target,$(shell basename $(EXE)))
+
+clean-exe:
+	$(call clean_target,$(shell basename $(EXE)))
+	if [ -e "$(EXE)" ]; then rm $(EXE); fi
+
+install-exe:
+	$(call install_target,$(shell basename $(EXE)))
+	mkdir -p $(INSTALL_PATH)/bin/
+	cp $(EXE) $(INSTALL_PATH)/bin
+
+uninstall-exe:
+	$(call uninstall_target,$(shell basename $(EXE)))
+	if [ -e "$(INSTALL_PATH)/bin/$(shell basename $(EXE))" ]; then rm $(INSTALL_PATH)/bin/$(shell basename $(EXE)); fi
+
+$(EXE): $(EXE_OBJS)
+	$(call print_link_exe,$(shell basename $(EXE)))
+	$(CC) $(CFLAGS) $(INCLUDE) $(EXE_OBJS) $(LIB) $(LINK) -o $@
+
+pre-exe:
+	$(call scan_target,$(shell basename $(EXE)))
+
+$(ROOT)/$(BUILD_DIR)/%.c.o: %.c
+	mkdir -p $(@D)
+	$(call print_build_c,$@)
+	$(CC) $(CFLAGS) -MMD -c $(INCLUDE) $^ -o $@
+
+$(ROOT)/$(BUILD_DIR)/./src/%.cpp.o: %.cpp
+	mkdir -p $(@D)
+	$(call print_build_cpp,$@)
+	$(CXX) $(CXXFLAGS) -MMD -c $(INCLUDE) $^ -o $@
