@@ -1,0 +1,5 @@
+entis.c
+pyentis.egg-info/PKG-INFO
+pyentis.egg-info/SOURCES.txt
+pyentis.egg-info/dependency_links.txt
+pyentis.egg-info/top_level.txt
