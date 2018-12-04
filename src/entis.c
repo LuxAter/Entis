@@ -284,7 +284,6 @@ entis_event entis_poll_event() {
       }
       case ENTIS_NO_EXPOSURE: {
         return (entis_event){ENTIS_NO_EVENT};
-        break;
       }
       default: { return event; }
     }
@@ -300,27 +299,20 @@ entis_event entis_wait_event_type(uint32_t type) {
   return event;
 }
 
-entis_event entis_poll_event_type(uint32_t type) {
-  entis_event event = entis_poll_event();
-  while ((event.type & type) == false && event.type != ENTIS_NO_EVENT) {
-    event = entis_poll_event();
-  }
-  return event;
-}
+/* entis_event entis_poll_event_type(uint32_t type) { */
+/*   entis_event event = entis_poll_event(); */
+/*   while ((event.type & type) == false && event.type != ENTIS_NO_EVENT) { */
+/*     event = entis_poll_event(); */
+/*   } */
+/*   return event; */
+/* } */
 
 entis_key_event entis_wait_key() {
   return entis_wait_event_type(ENTIS_KEY_PRESS | ENTIS_KEY_RELEASE).key;
 }
-entis_key_event entis_poll_key() {
-  return entis_poll_event_type(ENTIS_KEY_PRESS | ENTIS_KEY_RELEASE).key;
-}
 
 entis_button_event entis_wait_button() {
   return entis_wait_event_type(ENTIS_BUTTON_PRESS | ENTIS_BUTTON_RELEASE)
-      .button;
-}
-entis_button_event entis_poll_button() {
-  return entis_poll_event_type(ENTIS_BUTTON_PRESS | ENTIS_BUTTON_RELEASE)
       .button;
 }
 
