@@ -4,39 +4,36 @@
 
 #include "entis.h"
 
+void append(char* s, char c) {
+        int len = strlen(s);
+        s[len] = c;
+        s[len+1] = '\0';
+}
+
 int main(int argc, char* argv[]) {
   entis_init("Entis", 500, 500, 0, NULL);
   entis_set_background(ENTIS_BLACK);
-  entis_set_color(ENTIS_DARK_CYAN);
-  entis_set_pixel_size(10, 10);
+  entis_load_font("-*-fixed-bold-*-*-*-18-*-*-*-*-*-*-*");
   entis_clear();
-  for (int i = 0; i < entis_get_pixel_width(); i++) {
-    for (int j = 0; j < entis_get_pixel_height(); j++) {
-      if (i % 2 == 0 && j % 2 == 1) {
-        entis_set_pixel(i, j);
-      } else if (i % 2 == 1 && j % 2 == 0) {
-        entis_set_pixel(i, j);
-      }
-    }
-  }
-  entis_set_color(ENTIS_MAGENTA);
-  entis_event event = entis_wait_event();
-  uint16_t type = ENTIS_NO_EVENT;
-  uint16_t count = 0;
+  entis_event event = entis_poll_event();
+  uint16_t x = 0, y = 0;
+  char str[255];
   while (event.key.keycode != KEY_ESCAPE) {
-    event = entis_poll_event();
+    event = entis_wait_event();
     while (event.type != ENTIS_NO_EVENT) {
       if (event.type == ENTIS_KEY_RELEASE) {
-        if (event.key.keycode != 0) {
-          printf("RELEASE: KEYCODE: %d SYM: %c\n", event.key.keycode,
-                 event.key.keysym);
+        if (event.key.keycode != KEY_ESCAPE) {
+          append(str, event.key.keysym);
+          entis_draw_text(x, y, str);
         }else if(event.key.keycode== KEY_ESCAPE){
           break;
         }
       } else if (event.type == ENTIS_BUTTON_RELEASE) {
-        entis_pixel_set_pixel(event.button.x, event.button.y);
+        x = event.button.x;
+        y = event.button.y;
+        str[0] = 0;
       }
-    event = entis_poll_event();
+      event = entis_poll_event();
     }
     entis_clear_events();
     entis_sleep(0.1);

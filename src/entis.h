@@ -2,7 +2,7 @@
 #define ENTIS_ENTIS_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 #include <stdbool.h>
@@ -84,6 +84,8 @@ bool entis_connection_valid();
  */
 void entis_flush();
 
+void entis_load_font(const char* font_name);
+
 /**  @} */
 
 xcb_connection_t* entis_get_connection();
@@ -152,6 +154,8 @@ uint16_t entis_get_pixel_height();
 void entis_set_pixel_size(uint16_t width, uint16_t height);
 void entis_set_pixel(uint16_t x, uint16_t y);
 void entis_pixel_set_pixel(uint16_t x, uint16_t y);
+
+void entis_draw_text(uint16_t x, uint16_t y, const char* str);
 
 #ifdef __cplusplus
 }

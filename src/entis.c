@@ -16,7 +16,8 @@ static xcb_screen_t* screen_;
 
 static xcb_window_t window_;
 static xcb_pixmap_t pixmap_;
-static xcb_gcontext_t gcontext_, pixmap_gcontext_, pixmap_bg_gcontext_;
+static xcb_gcontext_t gcontext_, pixmap_gcontext_, pixmap_bg_gcontext_,
+    font_gcontext_;
 
 static uint16_t width_, height_;
 
@@ -47,10 +48,9 @@ void entis_init(const char* title, unsigned int w, unsigned int h,
   } else {
     uint32_t internal_value[1] = {
         XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
-        XCB_EVENT_MASK_BUTTON_RELEASE |
-        XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW |
-        XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE |
-        XCB_EVENT_MASK_STRUCTURE_NOTIFY};
+        XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_ENTER_WINDOW |
+        XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_KEY_PRESS |
+        XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_STRUCTURE_NOTIFY};
     cookie = xcb_create_window(
         connection_, XCB_COPY_FROM_PARENT, window_, screen_->root, 0, 0, w, h,
         0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen_->root_visual,
@@ -130,6 +130,36 @@ bool entis_connection_valid() {
   return true;
 }
 void entis_flush() { xcb_flush(connection_); }
+
+void entis_load_font(const char* font_name) {
+  xcb_font_t font = xcb_generate_id(connection_);
+  xcb_void_cookie_t cookie =
+      xcb_open_font_checked(connection_, font, strlen(font_name), font_name);
+  xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr, "[ERROR %u] Failed to open xcb font \"%s\"\n",
+            error_check->error_code, font_name);
+  }
+  free(error_check);
+  font_gcontext_ = xcb_generate_id(connection_);
+  uint32_t value_list[3] = {screen_->black_pixel, screen_->white_pixel, font};
+  cookie = xcb_create_gc(connection_, font_gcontext_, screen_->root,
+                         XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT,
+                         value_list);
+  error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr, "[ERROR %u] Failed to generage xcb font graphics context\n",
+            error_check->error_code);
+  }
+  free(error_check);
+  cookie = xcb_close_font(connection_, font);
+  error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr, "[ERROR %u] Failed to close xcb font\n",
+            error_check->error_code);
+  }
+  free(error_check);
+}
 
 xcb_connection_t* entis_get_connection() { return connection_; }
 xcb_screen_t* entis_get_screen() { return screen_; }
@@ -218,7 +248,7 @@ void entis_clear() {
                           (xcb_rectangle_t[]){{0, 0, width_, height_}});
 }
 
-void entis_sleep(double sec){
+void entis_sleep(double sec) {
   double seconds;
   double nanosec = modf(sec, &seconds);
   nanosec *= 1e9;
@@ -284,7 +314,6 @@ entis_event entis_poll_event() {
       }
       case ENTIS_NO_EXPOSURE: {
         return (entis_event){ENTIS_NO_EVENT};
-        break;
       }
       default: { return event; }
     }
@@ -450,4 +479,15 @@ void entis_pixel_set_pixel(uint16_t x, uint16_t y) {
     y -= (y % pix_height_);
     entis_fill_rectangle(x, y, pix_width_, pix_height_);
   }
+}
+
+void entis_draw_text(uint16_t x, uint16_t y, const char* str) {
+  xcb_void_cookie_t cookie = xcb_image_text_8(connection_, strlen(str), pixmap_,
+                                              font_gcontext_, x, y, str);
+  /* xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie); */
+  /* if (error_check != NULL) { */
+  /*   fprintf(stderr, "[ERROR %u] Failed to copy text\n", */
+  /*           error_check->error_code); */
+  /* } */
+  /* free(error_check); */
 }
