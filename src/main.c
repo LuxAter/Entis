@@ -27,6 +27,8 @@ int main(int argc, char* argv[]) {
       if (event.type == ENTIS_KEY_RELEASE) {
         if(event.key.keycode== KEY_ESCAPE){
           break;
+        }else{
+          printf("%c\n", event.key.keysym);
         }
       } else if (event.type == ENTIS_BUTTON_RELEASE) {
         entis_pixel_set_pixel(event.button.x, event.button.y);
