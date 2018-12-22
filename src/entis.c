@@ -7,6 +7,8 @@
 #include <time.h>
 
 #include <xcb/xcb.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "entis.h"
 #include "event.h"
@@ -131,7 +133,15 @@ bool entis_connection_valid() {
 }
 void entis_flush() { xcb_flush(connection_); }
 
-void entis_load_font(const char* font_name) {
+char* entis_load_xfont_fmt(const char* fmly, const char* wght, char slnt,
+                          uint8_t w) {
+  uint8_t n = snprintf(NULL, 0, "-*-%s-%s-%c-*-*-%u-*-*-*-*-*-*-*", fmly, wght,
+                       slnt, w);
+  char* fmt = malloc(n + 1);
+  snprintf(fmt, n + 1, "-*-%s-%s-%c-*-*-%u-*-*-*-*-*-*-*", fmly, wght, slnt, w);
+  return fmt;
+}
+void entis_load_xfont(const char* font_name) {
   xcb_font_t font = xcb_generate_id(connection_);
   xcb_void_cookie_t cookie =
       xcb_open_font_checked(connection_, font, strlen(font_name), font_name);
@@ -159,6 +169,29 @@ void entis_load_font(const char* font_name) {
             error_check->error_code);
   }
   free(error_check);
+}
+
+void entis_load_font(const char* font_name){
+  FT_Library library;
+  FT_Face face;
+  FT_Error error;
+  error = FT_Init_FreeType(&library);
+  if(error){
+    fprintf(stderr, "[ERROR FreeType2] Failed to initialize library\n");
+    return;
+  }
+  error = FT_New_Face(library, font_name, 0, &face);
+  if(error == FT_Err_Unknown_File_Format){
+    fprintf(stderr, "[ERROR FreeType2] Font was of unsuported format\n");
+    return;
+  }else if(error){
+    fprintf(stderr, "[ERROR FreeType2] Failed to load font\n");
+    return;
+  }
+  error = FT_Set_Char_Size(face, 50 * 64, 0, 100, 0);
+  if(error){
+    fprintf(stderr, "[ERROR FreeType2] Failed to set char size\n");
+  }
 }
 
 xcb_connection_t* entis_get_connection() { return connection_; }
@@ -210,6 +243,43 @@ void entis_set_background_rgb(uint32_t r, uint32_t g, uint32_t b) {
 void entis_set_background_drgb(double r, double g, double b) {
   entis_set_background(0x010000 * (uint32_t)(255 * r) +
                        0x000100 * (uint32_t)(256 * g) + (uint32_t)(256 * b));
+}
+void entis_set_font_color(uint32_t color) {
+  uint32_t values[1] = {color};
+  xcb_void_cookie_t cookie =
+      xcb_change_gc(connection_, font_gcontext_, XCB_GC_FOREGROUND, values);
+  xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr,
+            "[ERROR %u] Failed to change xcb font graphics context color\n",
+            error_check->error_code);
+  }
+}
+void entis_set_font_color_rgb(uint32_t r, uint32_t g, uint32_t b) {
+  entis_set_font_color(0x010000 * r + 0x000100 * g + b);
+}
+void entis_set_font_color_drgb(double r, double g, double b) {
+  entis_set_font_color(0x010000 * (uint32_t)(255 * r) +
+                       0x000100 * (uint32_t)(255 * g) + (uint32_t)(255 * b));
+}
+void entis_set_font_background(uint32_t color) {
+  uint32_t values[1] = {color};
+  xcb_void_cookie_t cookie =
+      xcb_change_gc(connection_, font_gcontext_, XCB_GC_BACKGROUND, values);
+  xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr,
+            "[ERROR %u] Failed to change xcb font graphics context color\n",
+            error_check->error_code);
+  }
+}
+void entis_set_font_background_rgb(uint32_t r, uint32_t g, uint32_t b) {
+  entis_set_font_background(0x010000 * r + 0x000100 * g + b);
+}
+void entis_set_font_background_drgb(double r, double g, double b) {
+  entis_set_font_background(0x010000 * (uint32_t)(255 * r) +
+                            0x000100 * (uint32_t)(255 * g) +
+                            (uint32_t)(255 * b));
 }
 
 void entis_reload_pixmap(uint32_t w, uint32_t h) {
@@ -481,13 +551,12 @@ void entis_pixel_set_pixel(uint16_t x, uint16_t y) {
   }
 }
 
-void entis_draw_text(uint16_t x, uint16_t y, const char* str) {
-  xcb_void_cookie_t cookie = xcb_image_text_8(connection_, strlen(str), pixmap_,
-                                              font_gcontext_, x, y, str);
-  /* xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie); */
-  /* if (error_check != NULL) { */
-  /*   fprintf(stderr, "[ERROR %u] Failed to copy text\n", */
-  /*           error_check->error_code); */
-  /* } */
-  /* free(error_check); */
+void entis_draw_xtext(uint16_t x, uint16_t y, const char* str) {
+  xcb_image_text_8(connection_, strlen(str), pixmap_, font_gcontext_, x, y,
+                   str);
+}
+
+bool entis_pt_in_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
+                      uint16_t px, uint16_t py) {
+  return px >= x && px <= (x + w) && py >= y && py <= (y + h);
 }

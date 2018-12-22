@@ -1,31 +1,26 @@
-SHELL = /bin/bash
+
+SHELL=/bin/bash
 ifndef .VERBOSE
-  .SILENT:
+    .SILENT:
 endif
-
-NAME=entis
-
-CC=gcc
-CXX=g++
-CFLAGS=-Wall
-CXXFLAGS=-Wall
-LINK=-lxcb -lm
-INCLUDE=
-
-SOURCE_DIR=src
-INCLUDE_DIR=
-BUILD_DIR=build
-DOC_DIR=docs
-TEST_DIR=test
-EXAMPLE_DIR=example
-INSTALL_PATH?=/usr/local
 ROOT=$(shell pwd)
+ROOT=/home/arden/Programming/c/entis
+CC=clang
+CCIGNORE=
+CCFLAGS=-fPIC -Wall -Wpedantic --static
+LINK=-lxcb -lm -lz
+SOURCE=src
+INCLUDE_DIR=include
+INCLUDE=-I$(ROOT)/build/libpng.a/include -I$(ROOT)/build/libfreetype.a/include/freetype2
+BUILD=build
+EXTERNAL=external
+COMMON_INCLUDE=-I$(ROOT)/$(INCLUDE_DIR) $(INCLUDE)
 
 SCAN_COLOR=\033[1;35m
 BUILD_COLOR=\033[32m
 CLEAN_COLOR=\033[1;33m
 LINK_COLOR=\033[1;32m
-INSTALL_COLOR=\033[01;36m
+INSTALL_COLOR=\033[1;36m
 CMD_COLOR=\033[1;34m
 HELP_COLOR=\033[1;34m
 
@@ -45,20 +40,16 @@ define uninstall_target
 printf "%b%s%b\n" "$(INSTALL_COLOR)" "Unnstalling target $(1)" "\033[0m"
 endef
 define print_build_c
-str=$$(realpath --relative-to="$(ROOT)" "$(1)");\
-    printf "%b%s%b\n" "$(BUILD_COLOR)" "Building C object $$str" "\033[0m"
+str=$$(realpath --relative-to="$(ROOT)" "$(1)");    printf "%b%s%b\n" "$(BUILD_COLOR)" "Building C object $$str" "\033[0m"
 endef
 define print_build_cpp
-str=$$(realpath --relative-to="$(ROOT)" "$(1)");\
-    printf "%b%s%b\n" "$(BUILD_COLOR)" "Building Cpp object $$str" "\033[0m"
+str=$$(realpath --relative-to="$(ROOT)" "$(1)");    printf "%b%s%b\n" "$(BUILD_COLOR)" "Building C++ object $$str" "\033[0m"
 endef
 define print_link_lib
-str=$$(realpath --relative-to="$(ROOT)" "$(1)");\
-    printf "%b%s%b\n" "$(LINK_COLOR)" "Linking static library $$str" "\033[0m"
+str=$$(realpath --relative-to="$(ROOT)" "$(1)");    printf "%b%s%b\n" "$(LINK_COLOR)" "Linking static library $$str" "\033[0m"
 endef
 define print_link_exe
-str=$$(realpath --relative-to="$(ROOT)" "$(1)");\
-    printf "%b%s%b\n" "$(LINK_COLOR)" "Linking executable $$str" "\033[0m"
+str=$$(realpath --relative-to="$(ROOT)" "$(1)");    printf "%b%s%b\n" "$(LINK_COLOR)" "Linking executable $$str" "\033[0m"
 endef
 define print_run_cmd
 printf "%b%s%b\n" "$(CMD_COLOR)" "Running '$(1)'" "\033[0m"
@@ -67,98 +58,122 @@ define help
 printf "%b%*s%b: %s\n" "$(HELP_COLOR)" 20 "$(1)" "\033[0m" "$(2)"
 endef
 
-LIB=$(ROOT)/$(BUILD_DIR)/lib$(NAME).a
-EXE=$(ROOT)/$(NAME)
+all: build-entis
 
-LIB_FILES = $(filter-out $(SOURCE_DIR)/main.cpp, $(filter-out $(SOURCE_DIR)/main.c, $(shell find "$(SOURCE_DIR)" -name "*.c")))
-LIB_OBJS = $(LIB_FILES:%=$(ROOT)/$(BUILD_DIR)/%.o)
-	EXE_FILES = $(shell find "$(SOURCE_DIR)" -name "*.c") $(shell find "$(SOURCE_DIR)" -name "*.cpp")
-	EXE_OBJS = $(EXE_FILES:%=$(ROOT)/$(BUILD_DIR)/%.o)
+clean: clean-entis clean-libentis.a
 
-all: source
+# ENTIS {{{
 
-clean: clean-source clean-docs
+ENTIS=/home/arden/Programming/c/entis/entis
+ENTIS_FILES=src/main.c
+ENTIS_OBJS=$(ENTIS_FILES:%=$(ROOT)/$(BUILD)/%.o)
+-include $(ENTIS_OBJS:.o=.d)
 
-install: install-source
+build-entis: build-libentis.a pre-entis $(ENTIS)
+	$(call complete_target,$(shell basename $(ENTIS)))
 
-uninstall: uninstall-source
+clean-entis:
+	$(call clean_target,$(shell basename $(ENTIS)))
+	if [ -e "$(ENTIS)" ]; then rm $(ENTIS); fi
 
-source: build-exe
+pre-entis:
+	$(call scan_target,$(shell basename $(ENTIS)))
 
-doc:
-	$(call print_run_cmd,doxygen)
-	doxygen
+$(ENTIS): $(ENTIS_OBJS) FORCE
+	$(call print_link_exe,$(shell basename $(ENTIS)))
+	$(CXX) $(ENTIS_OBJS) $(LIBENTIS.A) $(LINK) $(COMMON_INCLUDE) -o $(ENTIS)
 
-clean-docs:
-	$(call clean_target,docs)
-	if [ -d "$(DOC_DIR)/html" ]; then rm "$(DOC_DIR)/html" -r ;fi
-	if [ -d "$(DOC_DIR)/latex" ]; then rm "$(DOC_DIR)/latex" -r ;fi
-	if [ -d "$(DOC_DIR)/xml" ]; then rm "$(DOC_DIR)/xml" -r ;fi
+install-entis: build-entis
+	$(call install_target,$(shell basename $(ENTIS)))
+	mkdir -p $(INSTALL_PATH)/bin/
+	cp $(ENTIS) $(INSTALL_PATH)/bin
 
-clean-source: clean-lib clean-exe
-	if [ -e "$(ROOT)/$(BUILD_DIR)/$(SOURCE_DIR)" ]; then rm $(ROOT)/$(BUILD_DIR)/$(SOURCE_DIR) -r; fi
+uninstall-entis:
+	$(call uninstall_target,$(shell basename $(ENTIS)))
+	if [ -e "$(INSTALL_PATH)/bin/$(shell basename $(ENTIS))" ]; then rm $(INSTALL_PATH)/bin/$(shell basename $(ENTIS)); fi
 
-install-source: install-lib
+# }}}
+# LIBENTIS.A {{{
 
-uninstall-source: uninstall-lib
+LIBENTIS.A=build/libentis.a
+LIBENTIS.A_FILES=$(filter-out src/main.c, $(shell find "src/" -name "*.c"))
+LIBENTIS.A_OBJS=$(LIBENTIS.A_FILES:%=$(ROOT)/$(BUILD)/%.o)
+-include $(LIBENTIS.A_OBJS:.o=.d)
 
-build-lib: pre-lib $(LIB)
-	$(call complete_target,$(shell basename $(LIB)))
+build-libentis.a: build-libpng.a build-libfreetype.a pre-libentis.a $(LIBENTIS.A)
+	$(call complete_target,$(shell basename $(LIBENTIS.A)))
 
-clean-lib:
-	$(call clean_target,$(shell basename $(LIB)))
-	if [ -e "$(LIB)" ]; then rm $(LIB); fi
+clean-libentis.a: clean-libpng.a clean-libfreetype.a
+	$(call clean_target,$(shell basename $(LIBENTIS.A)))
+	if [ -e "$(LIBENTIS.A)" ]; then rm $(LIBENTIS.A); fi
 
-install-lib: build-lib
-	$(call install_target,$(shell basename $(LIB)))
+pre-libentis.a:
+	$(call scan_target,$(shell basename $(LIBENTIS.A)))
+
+$(LIBENTIS.A): $(LIBENTIS.A_OBJS) FORCE
+	$(call print_link_lib,$(shell basename $(LIBENTIS.A)))
+	ar rcs $@ $(LIBENTIS.A_OBJS)
+	mkdir -p $(ROOT)/tmp/libpng.a && cd $(ROOT)/tmp/libpng.a && ar x /home/arden/Programming/c/entis/build/libpng.a/lib/libpng.a && ar qc $(ROOT)/$@ $(ROOT)/tmp/libpng.a/*.o && rm -rf $(ROOT)/tmp/libpng.a
+	mkdir -p $(ROOT)/tmp/libfreetype.a && cd $(ROOT)/tmp/libfreetype.a && ar x /home/arden/Programming/c/entis/build/libfreetype.a/lib/libfreetype.a && ar qc $(ROOT)/$@ $(ROOT)/tmp/libfreetype.a/*.o && rm -rf $(ROOT)/tmp/libfreetype.a
+
+install-libentis.a: build-libentis.a
+	$(call install_target,$(shell basename $(LIBENTIS.A)))
 	mkdir -p $(INSTALL_PATH)/lib/
 	mkdir -p $(INSTALL_PATH)/include/$(NAME)/
-	cp $(LIB) $(INSTALL_PATH)/lib
+	cp $(LIBENTIS.A) $(INSTALL_PATH)/lib
 	if [ ! -z "$(INCLUDE_DIR)" ]; then cp -R $(INCLUDE_DIR)/ $(INSTALL_PATH)/include/$(NAME)/; fi
-	if [ ! -z "$(shell find $(SOURCE_DIR) -name "*.h")" ]; then cd $(SOURCE_DIR) && cp --parents $(shell cd $(SOURCE_DIR) && find . -name "*.h") $(INSTALL_PATH)/include/$(NAME); fi
-	if [ ! -z "$(shell find $(SOURCE_DIR) -name "*.hpp")" ]; then cd $(SOURCE_DIR) && cp --parents $(shell cd $(SOURCE_DIR) && find . -name "*.hpp") $(INSTALL_PATH)/include/$(NAME); fi
+	if [ ! -z "$(shell find $(SOURCE_DIR) -name "*.h")" ]; then cd $(SOURCE_DIR) && cp --parents $(sehll cd $(SOURCE_DIR) && find . -name "*.h") $(INSTALL_PATH)/include/$(NAME); fi
+	if [ ! -z "$(shell find $(SOURCE_DIR) -name "*.hpp")" ]; then cd $(SOURCE_DIR) && cp --parents $(sehll cd $(SOURCE_DIR) && find . -name "*.hpp") $(INSTALL_PATH)/include/$(NAME); fi
 
-uninstall-lib:
-	$(call uninstall_target,$(shell basename $(LIB)))
-	if [ ! -e "$(INSTALL_PATH)/lib/$(shell basename $(LIB))" ]; then rm "$(INSTALL_PATH)/lib/$(shell basename $(LIB))"; fi
-	if [ ! -e "$(INSTALL_PATH)/include/$(NAME)" ]; then rm "$(INSTALL_PATH)/include/$(NAME)" -r; fi
+uninstall-libentis.a:
+	$(call uninstall_target,$(shell basename $(LIBENTIS.A)))
+	if [ ! -e "$(INSTALL_PATH)/lib/$(shell basename $(LIBENTIS.A))" ]; then rm $(INSTALL_PATH)/lib/$(shell basename $(LIBENTIS.A)); fi
+	if [ ! -e "$(INSTALL_PATH)/include/$(NAME)" ]; then rm $(INSTALL_PATH)/include/$(NAME) -r; fi
 
-$(LIB): $(LIB_OBJS)
-	$(call print_link_lib,$(shell basename $(LIB)))
-	ar rcs $@ $(LIB_OBJS)
+# }}}
+# LIBPNG.A {{{
 
-pre-lib:
-	$(call scan_target,$(shell basename $(LIB)))
+build-libpng.a: pre-libpng.a
+	if [ ! -f "external/libpng/configure" ]; then $(call print_run_cmd,autogen.sh) && cd external/libpng && ./autogen.sh; fi
+	if [ ! -f "external/libpng/Makefile" ]; then $(call print_run_cmd,configure) && cd external/libpng && ./configure --prefix=/home/arden/Programming/c/entis/build/libpng.a; fi
+	if [ ! -d "/home/arden/Programming/c/entis/build/libpng.a" ]; then $(call print_run_cmd,make) && cd external/libpng && make install; fi
+	$(call complete_target,libpng.a)
 
-build-exe: build-lib pre-exe $(EXE)
-	$(call complete_target,$(shell basename $(EXE)))
+clean-libpng.a:
+	$(call clean_target,libpng.a)
+	if [ -e "external/libpng/Makefile" ]; then cd external/libpng && make clean && rm Makefile; fi
+	if [ -d "/home/arden/Programming/c/entis/build/libpng.a" ]; then rm /home/arden/Programming/c/entis/build/libpng.a -r; fi
 
-clean-exe:
-	$(call clean_target,$(shell basename $(EXE)))
-	if [ -e "$(EXE)" ]; then rm $(EXE); fi
+pre-libpng.a:
+	$(call scan_target,libpng.a)
 
-install-exe:
-	$(call install_target,$(shell basename $(EXE)))
-	mkdir -p $(INSTALL_PATH)/bin/
-	cp $(EXE) $(INSTALL_PATH)/bin
+# }}}
+# LIBFREETYPE.A {{{
 
-uninstall-exe:
-	$(call uninstall_target,$(shell basename $(EXE)))
-	if [ -e "$(INSTALL_PATH)/bin/$(shell basename $(EXE))" ]; then rm $(INSTALL_PATH)/bin/$(shell basename $(EXE)); fi
+build-libfreetype.a: pre-libfreetype.a
+	# $(call print_run_cmd,autogen.sh) && cd external/freetype2 && ./autogen.sh
+	# $(call print_run_cmd,configure) && cd external/freetype2 && ./configure --prefix=/home/arden/Programming/c/entis/build/libfreetype.a --without-harfbuzz --without-bzip2 --without-zlib --without-png
+	if [ ! -d "/home/arden/Programming/c/entis/build/libfreetype.a" ]; then $(call print_run_cmd,make) && cd external/freetype2 && make install; fi
+	$(call complete_target,libfreetype.a)
 
-$(EXE): $(EXE_OBJS)
-	$(call print_link_exe,$(shell basename $(EXE)))
-	$(CC) $(CFLAGS) $(INCLUDE) $(EXE_OBJS) $(LIB) $(LINK) -o $@
+clean-libfreetype.a:
+	$(call clean_target,libfreetype.a)
+	if [ -e "external/freetype2/Makefile" ]; then cd external/freetype2 && make clean && rm Makefile; fi
+	if [ -d "/home/arden/Programming/c/entis/build/libfreetype.a" ]; then rm /home/arden/Programming/c/entis/build/libfreetype.a -r; fi
 
-pre-exe:
-	$(call scan_target,$(shell basename $(EXE)))
+pre-libfreetype.a:
+	$(call scan_target,libfreetype.a)
 
-$(ROOT)/$(BUILD_DIR)/%.c.o: %.c
-	mkdir -p $(@D)
-	$(call print_build_c,$@)
-	$(CC) $(CFLAGS) -MMD -c $(INCLUDE) $^ -o $@
+# }}}
 
-$(ROOT)/$(BUILD_DIR)/./src/%.cpp.o: %.cpp
-	mkdir -p $(@D)
+$(ROOT)/$(BUILD)/%.cpp.o: %.cpp
 	$(call print_build_cpp,$@)
-	$(CXX) $(CXXFLAGS) -MMD -c $(INCLUDE) $^ -o $@
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -MMD -c $(COMMON_INCLUDE) $< -o $@
+
+$(ROOT)/$(BUILD)/%.c.o: %.c
+	$(call print_build_c,$@)
+	mkdir -p $(@D)
+	$(CC) $(CCFLAGS) -MMD -c $(COMMON_INCLUDE) $< -o $@
+
+FORCE:

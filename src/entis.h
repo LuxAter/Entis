@@ -10,6 +10,7 @@ extern "C" {
 
 #include "event.h"
 #include "key_codes.h"
+#include "save.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -84,9 +85,18 @@ bool entis_connection_valid();
  */
 void entis_flush();
 
-void entis_load_font(const char* font_name);
-
 /**  @} */
+
+/**
+ * @name Font
+ * Font loading for X11 core fonts, and TTF.
+ * @{ */
+char* entis_load_xfont_fmt(const char* fmly, const char* wght, char slnt, uint8_t w);
+void entis_load_xfont(const char* font_name);
+
+void entis_load_font(const char* font_name);
+/**  @} */
+
 
 xcb_connection_t* entis_get_connection();
 xcb_screen_t* entis_get_screen();
@@ -100,6 +110,12 @@ void entis_set_color_drgb(double r, double g, double b);
 void entis_set_background(uint32_t color);
 void entis_set_background_rgb(uint32_t r, uint32_t g, uint32_t b);
 void entis_set_background_drgb(double r, double g, double b);
+void entis_set_font_color(uint32_t color);
+void entis_set_font_color_rgb(uint32_t r, uint32_t g, uint32_t b);
+void entis_set_font_color_drgb(double r, double g, double b);
+void entis_set_font_background(uint32_t color);
+void entis_set_font_background_rgb(uint32_t r, uint32_t g, uint32_t b);
+void entis_set_font_background_drgb(double r, double g, double b);
 
 void entis_reload_pixmap(uint32_t w, uint32_t h);
 
@@ -155,7 +171,9 @@ void entis_set_pixel_size(uint16_t width, uint16_t height);
 void entis_set_pixel(uint16_t x, uint16_t y);
 void entis_pixel_set_pixel(uint16_t x, uint16_t y);
 
-void entis_draw_text(uint16_t x, uint16_t y, const char* str);
+void entis_draw_xtext(uint16_t x, uint16_t y, const char* str) __attribute__((deprecated));
+
+bool entis_pt_in_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t px, uint16_t py);
 
 #ifdef __cplusplus
 }

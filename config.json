@@ -1,0 +1,40 @@
+{
+  "CC": "clang",
+  "CCIGNORE": "",
+  "CCFLAGS": ["-fPIC", "-Wall", "-Wpedantic", "--static"],
+  "link": "-lxcb -lm",
+  "source": "src",
+  "include_dir": "include",
+  "include": [],
+  "build": "build",
+  "external": "external",
+  "entis": {
+    "path": "{{root}}/entis",
+    "files": "{{source}}/main.c",
+    "type": "exe",
+    "dep": [
+      "libentis.a"
+    ]
+  },
+  "libentis.a": {
+    "path": "{{build}}/libentis.a",
+    "files": "{{source}}/*.c",
+    "files_exclude": "{{source}}/main.c",
+    "type": "lib",
+    "join": true,
+    "dep": [
+      "libpng.a",
+      "libfreetype.a"
+    ]
+  },
+  "libpng.a": {
+    "path": "{{root}}/{{build}}/libpng.a",
+    "source": "{{external}}/libpng",
+    "type": "aumake"
+  },
+  "libfreetype.a": {
+    "path": "{{root}}/{{build}}/libfreetype.a",
+    "source": "{{external}}/freetype2",
+    "type": "faumake"
+  }
+}
