@@ -8,7 +8,7 @@ extern "C" {
 #include <stdbool.h>
 #include <xcb/xcb.h>
 
-void entis_save_png(const char* file_name);
+void entis_save_png(const char* file_name) __attribute__((deprecated));
 
 #ifdef __cplusplus
 }

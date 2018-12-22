@@ -95,6 +95,7 @@ char* entis_load_xfont_fmt(const char* fmly, const char* wght, char slnt, uint8_
 void entis_load_xfont(const char* font_name);
 
 void entis_load_font(const char* font_name);
+void entis_set_font_size(uint16_t pt, uint32_t dpi);
 /**  @} */
 
 
@@ -172,6 +173,7 @@ void entis_set_pixel(uint16_t x, uint16_t y);
 void entis_pixel_set_pixel(uint16_t x, uint16_t y);
 
 void entis_draw_xtext(uint16_t x, uint16_t y, const char* str) __attribute__((deprecated));
+void entis_draw_text(uint16_t x, uint16_t y, const char* str);
 
 bool entis_pt_in_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t px, uint16_t py);
 

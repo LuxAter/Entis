@@ -6,8 +6,8 @@
 #include <string.h>
 #include <time.h>
 
-#include <xcb/xcb.h>
 #include <ft2build.h>
+#include <xcb/xcb.h>
 #include FT_FREETYPE_H
 
 #include "entis.h"
@@ -18,12 +18,16 @@ static xcb_screen_t* screen_;
 
 static xcb_window_t window_;
 static xcb_pixmap_t pixmap_;
+static uint32_t fg_, bg_, font_fg_, font_bg_;
 static xcb_gcontext_t gcontext_, pixmap_gcontext_, pixmap_bg_gcontext_,
-    font_gcontext_;
+    font_gcontext_, font_bg_gcontext_;
 
 static uint16_t width_, height_;
 
 static uint16_t pix_width_, pix_height_;
+
+static FT_Library library_;
+static FT_Face face_;
 
 void entis_init(const char* title, unsigned int w, unsigned int h,
                 uint32_t value_mask, void* value_list) {
@@ -94,6 +98,26 @@ void entis_init(const char* title, unsigned int w, unsigned int h,
             error_check->error_code);
   }
   free(error_check);
+  font_gcontext_ = xcb_generate_id(connection_);
+  cookie = xcb_create_gc(connection_, font_gcontext_, screen_->root,
+                         XCB_GC_FOREGROUND, (uint32_t[]){0x000000});
+  error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr,
+            "[ERROR %u] Failed to generage xcb font graphics context\n",
+            error_check->error_code);
+  }
+  free(error_check);
+  font_bg_gcontext_ = xcb_generate_id(connection_);
+  cookie = xcb_create_gc(connection_, font_bg_gcontext_, screen_->root,
+                         XCB_GC_FOREGROUND, (uint32_t[]){0x000000});
+  error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    fprintf(stderr,
+            "[ERROR %u] Failed to generage xcb font graphics context\n",
+            error_check->error_code);
+  }
+  free(error_check);
   xcb_poly_fill_rectangle(connection_, pixmap_, pixmap_bg_gcontext_, 1,
                           (xcb_rectangle_t[]){{0, 0, w, h}});
   gcontext_ = xcb_generate_id(connection_);
@@ -134,7 +158,7 @@ bool entis_connection_valid() {
 void entis_flush() { xcb_flush(connection_); }
 
 char* entis_load_xfont_fmt(const char* fmly, const char* wght, char slnt,
-                          uint8_t w) {
+                           uint8_t w) {
   uint8_t n = snprintf(NULL, 0, "-*-%s-%s-%c-*-*-%u-*-*-*-*-*-*-*", fmly, wght,
                        slnt, w);
   char* fmt = malloc(n + 1);
@@ -151,17 +175,6 @@ void entis_load_xfont(const char* font_name) {
             error_check->error_code, font_name);
   }
   free(error_check);
-  font_gcontext_ = xcb_generate_id(connection_);
-  uint32_t value_list[3] = {screen_->black_pixel, screen_->white_pixel, font};
-  cookie = xcb_create_gc(connection_, font_gcontext_, screen_->root,
-                         XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT,
-                         value_list);
-  error_check = xcb_request_check(connection_, cookie);
-  if (error_check != NULL) {
-    fprintf(stderr, "[ERROR %u] Failed to generage xcb font graphics context\n",
-            error_check->error_code);
-  }
-  free(error_check);
   cookie = xcb_close_font(connection_, font);
   error_check = xcb_request_check(connection_, cookie);
   if (error_check != NULL) {
@@ -171,25 +184,33 @@ void entis_load_xfont(const char* font_name) {
   free(error_check);
 }
 
-void entis_load_font(const char* font_name){
-  FT_Library library;
-  FT_Face face;
+void entis_load_font(const char* font_name) {
   FT_Error error;
-  error = FT_Init_FreeType(&library);
-  if(error){
+  error = FT_Init_FreeType(&library_);
+  if (error) {
     fprintf(stderr, "[ERROR FreeType2] Failed to initialize library\n");
     return;
   }
-  error = FT_New_Face(library, font_name, 0, &face);
-  if(error == FT_Err_Unknown_File_Format){
+  error = FT_New_Face(library_, font_name, 0, &face_);
+  if (error == FT_Err_Unknown_File_Format) {
     fprintf(stderr, "[ERROR FreeType2] Font was of unsuported format\n");
     return;
-  }else if(error){
+  } else if (error) {
     fprintf(stderr, "[ERROR FreeType2] Failed to load font\n");
     return;
   }
-  error = FT_Set_Char_Size(face, 50 * 64, 0, 100, 0);
-  if(error){
+  /* error = FT_Set_Pixel_Sizes(face_, 0, 12); */
+  /* if (error) { */
+  /*   fprintf(stderr, "[ERROR FreeType2] Failed to set char size\n"); */
+  /* } */
+  error = FT_Set_Char_Size(face_, 0, 12 * 64, 276, 276);
+  if (error) {
+    fprintf(stderr, "[ERROR FreeType2] Failed to set char size\n");
+  }
+}
+void entis_set_font_size(uint16_t pt, uint32_t dpi) {
+  FT_Error error = FT_Set_Char_Size(face_, pt * 64, pt * 64, dpi, dpi);
+  if (error) {
     fprintf(stderr, "[ERROR FreeType2] Failed to set char size\n");
   }
 }
@@ -201,6 +222,7 @@ xcb_pixmap_t entis_get_pixmap() { return pixmap_; }
 xcb_gcontext_t entis_get_gcontext() { return gcontext_; }
 
 void entis_set_color(uint32_t color) {
+  fg_ = color;
   uint32_t values[1] = {color};
   xcb_void_cookie_t cookie =
       xcb_change_gc(connection_, pixmap_gcontext_, XCB_GC_FOREGROUND, values);
@@ -219,6 +241,7 @@ void entis_set_color_drgb(double r, double g, double b) {
 }
 
 void entis_set_background(uint32_t color) {
+  bg_ = color;
   uint32_t values[1] = {color};
   xcb_void_cookie_t cookie = xcb_change_window_attributes(
       connection_, window_, XCB_CW_BACK_PIXEL, values);
@@ -245,6 +268,7 @@ void entis_set_background_drgb(double r, double g, double b) {
                        0x000100 * (uint32_t)(256 * g) + (uint32_t)(256 * b));
 }
 void entis_set_font_color(uint32_t color) {
+  font_fg_ = color;
   uint32_t values[1] = {color};
   xcb_void_cookie_t cookie =
       xcb_change_gc(connection_, font_gcontext_, XCB_GC_FOREGROUND, values);
@@ -263,9 +287,10 @@ void entis_set_font_color_drgb(double r, double g, double b) {
                        0x000100 * (uint32_t)(255 * g) + (uint32_t)(255 * b));
 }
 void entis_set_font_background(uint32_t color) {
+  font_bg_ = color;
   uint32_t values[1] = {color};
   xcb_void_cookie_t cookie =
-      xcb_change_gc(connection_, font_gcontext_, XCB_GC_BACKGROUND, values);
+      xcb_change_gc(connection_, font_bg_gcontext_, XCB_GC_FOREGROUND, values);
   xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
   if (error_check != NULL) {
     fprintf(stderr,
@@ -531,7 +556,7 @@ void entis_fill_circle(uint16_t x, uint16_t y, uint16_t radius) {
 }
 
 uint16_t entis_get_pixel_width() { return (width_ / pix_width_); }
-uint16_t entis_get_pixel_height() { return (height_ / pix_height_); };
+uint16_t entis_get_pixel_height() { return (height_ / pix_height_); }
 void entis_set_pixel_size(uint16_t width, uint16_t height) {
   pix_width_ = width;
   pix_height_ = height;
@@ -554,6 +579,35 @@ void entis_pixel_set_pixel(uint16_t x, uint16_t y) {
 void entis_draw_xtext(uint16_t x, uint16_t y, const char* str) {
   xcb_image_text_8(connection_, strlen(str), pixmap_, font_gcontext_, x, y,
                    str);
+}
+void entis_draw_text(uint16_t x, uint16_t y, const char* str) {
+  uint16_t max_bearing = 0;
+  for (uint32_t i = 0; i < strlen(str); ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    if (face_->glyph->metrics.horiBearingY > max_bearing) {
+      max_bearing = face_->glyph->metrics.horiBearingY >> 6;
+    }
+  }
+  for (uint32_t i = 0; i < strlen(str); ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    FT_Bitmap* bitmap = &(face_->glyph)->bitmap;
+    for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
+      for (uint16_t by = 0; by < bitmap->rows; ++by) {
+        if (bitmap->buffer[by * bitmap->width + bx] != 0) {
+          xcb_poly_point(
+              connection_, XCB_COORD_MODE_ORIGIN, pixmap_, font_gcontext_, 1,
+              (xcb_point_t[]){{x + bx, y - face_->glyph->bitmap_top + by}});
+        } else if (font_bg_ <= 0xffffff){
+          xcb_poly_point(
+              connection_, XCB_COORD_MODE_ORIGIN, pixmap_, font_bg_gcontext_, 1,
+              (xcb_point_t[]){{x + bx, y - face_->glyph->bitmap_top + by}});
+        }
+      }
+    }
+    x += face_->glyph->advance.x >> 6;
+  }
 }
 
 bool entis_pt_in_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
