@@ -81,7 +81,7 @@ pre-entis:
 
 $(ENTIS): $(ENTIS_OBJS) FORCE
 	$(call print_link_exe,$(shell basename $(ENTIS)))
-	$(CXX) $(ENTIS_OBJS) $(LIBENTIS.A) $(LINK) $(COMMON_INCLUDE) -o $(ENTIS)
+	$(CC) $(ENTIS_OBJS) $(LIBENTIS.A) $(LINK) $(COMMON_INCLUDE) -o $(ENTIS)
 
 install-entis: build-entis
 	$(call install_target,$(shell basename $(ENTIS)))
@@ -151,14 +151,13 @@ pre-libpng.a:
 # LIBFREETYPE.A {{{
 
 build-libfreetype.a: pre-libfreetype.a
-	# $(call print_run_cmd,autogen.sh) && cd external/freetype2 && ./autogen.sh
-	# $(call print_run_cmd,configure) && cd external/freetype2 && ./configure --prefix=/home/arden/Programming/c/entis/build/libfreetype.a --without-harfbuzz --without-bzip2 --without-zlib --without-png
+	$(call print_run_cmd,autogen.sh) && cd external/freetype2 && ./autogen.sh
+	$(call print_run_cmd,configure) && cd external/freetype2 && ./configure --prefix=/home/arden/Programming/c/entis/build/libfreetype.a --without-harfbuzz --without-bzip2 --without-zlib --without-png
 	if [ ! -d "/home/arden/Programming/c/entis/build/libfreetype.a" ]; then $(call print_run_cmd,make) && cd external/freetype2 && make install; fi
 	$(call complete_target,libfreetype.a)
 
 clean-libfreetype.a:
 	$(call clean_target,libfreetype.a)
-	if [ -e "external/freetype2/Makefile" ]; then cd external/freetype2 && make clean && rm Makefile; fi
 	if [ -d "/home/arden/Programming/c/entis/build/libfreetype.a" ]; then rm /home/arden/Programming/c/entis/build/libfreetype.a -r; fi
 
 pre-libfreetype.a:
