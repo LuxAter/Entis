@@ -115,6 +115,7 @@ $(LIBENTIS.A): $(LIBENTIS.A_OBJS) FORCE
 	ar rcs $@ $(LIBENTIS.A_OBJS)
 	mkdir -p $(ROOT)/tmp/libpng.a && cd $(ROOT)/tmp/libpng.a && ar x /home/arden/Programming/c/entis/build/libpng.a/lib/libpng.a && ar qc $(ROOT)/$@ $(ROOT)/tmp/libpng.a/*.o && rm -rf $(ROOT)/tmp/libpng.a
 	mkdir -p $(ROOT)/tmp/libfreetype.a && cd $(ROOT)/tmp/libfreetype.a && ar x /home/arden/Programming/c/entis/build/libfreetype.a/lib/libfreetype.a && ar qc $(ROOT)/$@ $(ROOT)/tmp/libfreetype.a/*.o && rm -rf $(ROOT)/tmp/libfreetype.a
+	rm $(ROOT)/tmp -rf
 
 install-libentis.a: build-libentis.a
 	$(call install_target,$(shell basename $(LIBENTIS.A)))

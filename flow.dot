@@ -1,0 +1,17 @@
+//
+// flow.dot
+//
+// Created on 23-12-2018 by arden
+//
+digraph flow {
+  Text->Pixel;
+  Line->FrameBuffer1;
+  Poly->FrameBuffer1;
+  Pixel->FrameBuffer1;
+  FrameBuffer1->PNG;
+  FrameBuffer1->BMP;
+  FrameBuffer1->GContext;
+  FrameBuffer1->FrameBuffer2;
+  FrameBuffer2->GContext;
+  GContext->XCB;
+}
