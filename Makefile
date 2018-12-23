@@ -159,7 +159,6 @@ build-libfreetype.a: pre-libfreetype.a
 
 clean-libfreetype.a:
 	$(call clean_target,libfreetype.a)
-	if [ -e "external/freetype2/Makefile" ]; then cd external/freetype2 && make clean && rm Makefile; fi
 	if [ -d "/home/arden/Programming/c/entis/build/libfreetype.a" ]; then rm /home/arden/Programming/c/entis/build/libfreetype.a -r; fi
 
 pre-libfreetype.a:

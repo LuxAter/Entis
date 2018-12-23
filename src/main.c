@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "entis.h"
+#include "error.h"
 
 void append(char* s, char c) {
   int len = strlen(s);
@@ -12,6 +13,10 @@ void append(char* s, char c) {
 }
 
 int main(int argc, char* argv[]) {
+  entis_init(500,500, ENTIS_XCB | ENTIS_TTF);
+  /* entis_init_xcb("ENTIS"); */
+  /* entis_term_xcb(); */
+  entis_term();
   return 0;
   /* entis_init("Entis", 500, 500, 0, NULL); */
   /* entis_set_background(ENTIS_BLACK); */
