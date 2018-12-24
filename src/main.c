@@ -13,9 +13,17 @@ void append(char* s, char c) {
 }
 
 int main(int argc, char* argv[]) {
-  entis_init(500,500, ENTIS_XCB | ENTIS_TTF);
-  /* entis_init_xcb("ENTIS"); */
-  /* entis_term_xcb(); */
+  entis_init(500, 500, ENTIS_XCB | ENTIS_TTF);
+  entis_background_int(0xff5722);
+  entis_clear();
+  while (true) {
+    entis_button_event ev = entis_wait_button();
+    if (ev.x <= 100 && ev.y <= 100) {
+      break;
+    } else {
+      entis_point(ev.x, ev.y);
+    }
+  }
   entis_term();
   return 0;
   /* entis_init("Entis", 500, 500, 0, NULL); */
