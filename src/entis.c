@@ -471,8 +471,173 @@ void entis_points(uint32_t* x, uint32_t* y, uint32_t n) {
   }
 }
 // TODO: Compleate reasterization of lines
-void entis_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1){
+void entis_line_low(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1) {
+  int dx = x1 - x0;
+  int dy = y1 - y0;
+  int yi = 1;
+  if (dy < 0) {
+    yi = -1;
+    dy = -dy;
+  }
+  int d = 2 * dy - dx;
+  int y = y0;
+  for (int x = x0; x <= x1; ++x) {
+    entis_point(x, y);
+    if (d > 0) {
+      y += yi;
+      d -= (2 * dx);
+    }
+    d += (2 * dy);
+  }
+}
+void entis_line_high(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1) {
+  int dx = x1 - x0;
+  int dy = y1 - y0;
+  int xi = 1;
+  if (dx < 0) {
+    xi = -1;
+    dx = -dx;
+  }
+  int d = 2 * dx - dy;
+  int x = x0;
+  for (int y = y0; y <= y1; ++y) {
+    entis_point(x, y);
+    if (d > 0) {
+      x += xi;
+      d -= (2 * dy);
+    }
+    d += (2 * dx);
+  }
+}
+void entis_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1) {
+  if (labs((int64_t)y1 - (int64_t)y0) < labs((int64_t)x1 - (int64_t)x0)) {
+    if (x0 > x1) {
+      entis_line_low(x1, y1, x0, y0);
+    } else {
+      entis_line_low(x0, y0, x1, y1);
+    }
+  } else {
+    if (y0 > y1) {
+      entis_line_high(x1, y1, x0, y0);
+    } else {
+      entis_line_high(x0, y0, x1, y1);
+    }
+  }
+}
 
+void entis_triangle(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
+                    uint32_t x2, uint32_t y2) {
+  entis_line(x0, y0, x1, y1);
+  entis_line(x1, y1, x2, y2);
+  entis_line(x2, y2, x0, y0);
+}
+
+void entis_rectangle(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+  entis_line(x, y, x + width, y);
+  entis_line(x, y, x, y + height);
+  entis_line(x + width, y, x + width, y + height);
+  entis_line(x, y + height, x + width, y + height);
+}
+
+void entis_circle(uint32_t cx, uint32_t cy, uint32_t r) {
+  uint32_t x = r - 1;
+  uint32_t y = 0;
+  int32_t err = (x * x) - (r * r) + r;
+  while (x >= y) {
+    entis_point(cx + x, cy + y);
+    entis_point(cx + y, cy + x);
+    entis_point(cx - y, cy + x);
+    entis_point(cx - x, cy + y);
+    entis_point(cx - x, cy - y);
+    entis_point(cx - y, cy - x);
+    entis_point(cx + y, cy - x);
+    entis_point(cx + x, cy - y);
+    if (err <= 0) {
+      y++;
+      err += 2 * y + 1;
+    } else {
+      x--;
+      err -= x * 2 + 1;
+    }
+  }
+}
+
+void entis_poly(uint32_t* x, uint32_t* y, uint32_t n) {
+  for (uint32_t i = 1; i < n; ++i) {
+    entis_line(x[i - 1], y[i - 1], x[i], y[i]);
+  }
+  entis_line(x[0], y[0], x[n - 1], y[n - 1]);
+}
+
+void entis_triangle_fill(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
+                         uint32_t x2, uint32_t y2) {
+  entis_poly_fill((uint32_t[]){x0, x1, x2}, (uint32_t[]){y0, y1, y2}, 3);
+}
+
+void entis_rectangle_fill(uint32_t x, uint32_t y, uint32_t width,
+                          uint32_t height) {
+  for (uint32_t i = y; i < y + height; ++i) {
+    for (uint32_t j = x; j < x + width; ++j) {
+      entis_point(j, i);
+    }
+  }
+}
+
+void entis_circle_fill(uint32_t cx, uint32_t cy, uint32_t r) {
+  uint32_t rsq = r * r;
+  for (int32_t y = -r; y <= r; ++y) {
+    uint32_t ysq = y * y;
+    for (uint32_t x = -r; x <= r; ++x) {
+      if (x * x + ysq < rsq) {
+        entis_point(cx + x, cy + y);
+      }
+    }
+  }
+}
+void entis_poly_fill(uint32_t *x, uint32_t *y, uint32_t n) {
+  uint32_t min_y = y[0];
+  uint32_t max_y = y[0];
+  for (uint32_t i = 1; i < n; ++i) {
+    min_y = max(min_y, y[i]);
+    max_y = max(max_y, y[i]);
+  }
+  for (uint32_t i = min_y; i <= max_y; ++i) {
+    uint32_t inter_mem = 8, inter_size = 0;
+    uint32_t* inter = (uint32_t*)malloc(8 * sizeof(uint32_t));
+    for (uint32_t j = 0; j < n; ++j) {
+      uint32_t k = (j + 1) % n;
+      if (max(y[j], y[k]) > i && min(y[j], y[k]) <= i) {
+        uint32_t inter_pos = 0;
+        if (x[j] == x[k]) {
+          inter_pos = x[j];
+        } else {
+          double m =
+              ((double)y[k] - (double)y[j]) / ((double)x[k] - (double)x[j]);
+          inter_pos = (uint32_t)((i - y[j] + (m * x[j])) / m);
+        }
+        if (inter_size == inter_mem) {
+          uint32_t* temp_inter =
+              (uint32_t*)realloc(inter, inter_mem * 2 * sizeof(uint32_t));
+          inter = temp_inter;
+        }
+        for (uint32_t l = 0; l < inter_size; ++l) {
+          if (inter_pos < inter[l]) {
+            for (uint32_t m = l + 1; m < inter_size + 1; ++m) {
+              inter[m] = inter[m - 1];
+            }
+            inter[l] = inter_pos;
+            break;
+          }
+        }
+        inter_size++;
+        // INSERT INTERSECTION
+      }
+    }
+    for (uint32_t j = 0; j < inter_size; j += 2) {
+      entis_line(inter[j], i, inter[(j + 1) % inter_size], i);
+    }
+    free(inter);
+  }
 }
 
 uint32_t entis_get_color(uint32_t x, uint32_t y) {

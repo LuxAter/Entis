@@ -18,6 +18,20 @@ extern "C" {
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+#define max(X, Y) (((X) > (Y)) ? (X) : (Y))
+#define min(X, Y) (((X) < (Y)) ? (X) : (Y))
+#ifndef max
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+#endif
+#ifndef min
+#define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+#endif
 #define ENTIS_D30 0.52359877559829881565
 #define ENTIS_D45 0.78539816339744827899
 #define ENTIS_D60 1.04719755119659763131
@@ -98,9 +112,9 @@ void entis_points(uint32_t* x, uint32_t* y, uint32_t n);
 void entis_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1);
 void entis_triangle(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
                     uint32_t x2, uint32_t y2);
-void entis_rectangle(uint32_t x, uint32_t y, uint32_t width, uint32_t
-height); void entis_circle(uint32_t cx, uint32_t cy, uint32_t r); void
-entis_poly(uint32_t* x, uint32_t* y, uint32_t n);
+void entis_rectangle(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+void entis_circle(uint32_t cx, uint32_t cy, uint32_t r);
+void entis_poly(uint32_t* x, uint32_t* y, uint32_t n);
 
 void entis_triangle_fill(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
                          uint32_t x2, uint32_t y2);

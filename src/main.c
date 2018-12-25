@@ -16,12 +16,27 @@ int main(int argc, char* argv[]) {
   entis_init(500, 500, ENTIS_XCB | ENTIS_TTF);
   entis_background_int(0xff5722);
   entis_clear();
+  entis_color_int(0xff0000);
+  entis_rectangle_fill(0,0,100,100);
+  entis_color_int(0x00ff00);
+  entis_rectangle_fill(0,100,100,100);
+  uint32_t x[255];
+  uint32_t y[255];
+  uint32_t n = 0;
   while (true) {
     entis_button_event ev = entis_wait_button();
     if (ev.x <= 100 && ev.y <= 100) {
       break;
+    } else if (ev.x <= 100 && ev.y <= 200) {
+      printf("HI!");
+      entis_poly_fill(x, y, n);
     } else {
+      /* entis_color_int(rand() % 0xffffff); */
+      entis_circle(ev.x, ev.y, 30);
       entis_point(ev.x, ev.y);
+      x[n] = ev.x;
+      y[n] = ev.y;
+      n++;
     }
   }
   entis_term();
