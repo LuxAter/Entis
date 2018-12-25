@@ -141,10 +141,10 @@ bool entis_init_xcb(const char* title) {
                         title);
   }
   xcb_map_window(connection_, window_);
-  xcb_flush(connection_);
-  nanosleep(&(struct timespec){0, 3.125e7}, NULL);
-  entis_clear_events();
   xcb_ = true;
+  entis_xcb_update();
+  nanosleep(&(struct timespec){0, 3.1e7}, NULL);
+  entis_clear_events();
   return true;
 }
 bool entis_term_xcb() {
@@ -598,12 +598,13 @@ void entis_poly_fill(uint32_t *x, uint32_t *y, uint32_t n) {
   uint32_t min_y = y[0];
   uint32_t max_y = y[0];
   for (uint32_t i = 1; i < n; ++i) {
-    min_y = max(min_y, y[i]);
+    min_y = min(min_y, y[i]);
     max_y = max(max_y, y[i]);
   }
   for (uint32_t i = min_y; i <= max_y; ++i) {
-    uint32_t inter_mem = 8, inter_size = 0;
-    uint32_t* inter = (uint32_t*)malloc(8 * sizeof(uint32_t));
+    uint32_t inter_mem = 16, inter_size = 0;
+    uint32_t* inter = (uint32_t*)malloc(16 * sizeof(uint32_t));
+
     for (uint32_t j = 0; j < n; ++j) {
       uint32_t k = (j + 1) % n;
       if (max(y[j], y[k]) > i && min(y[j], y[k]) <= i) {
@@ -613,14 +614,15 @@ void entis_poly_fill(uint32_t *x, uint32_t *y, uint32_t n) {
         } else {
           double m =
               ((double)y[k] - (double)y[j]) / ((double)x[k] - (double)x[j]);
-          inter_pos = (uint32_t)((i - y[j] + (m * x[j])) / m);
+          inter_pos = (uint32_t)(((double)i - (double)y[j] + (m * (double)x[j])) / m);
         }
         if (inter_size == inter_mem) {
           uint32_t* temp_inter =
               (uint32_t*)realloc(inter, inter_mem * 2 * sizeof(uint32_t));
           inter = temp_inter;
         }
-        for (uint32_t l = 0; l < inter_size; ++l) {
+        uint32_t l = 0;
+        for (l = 0; l < inter_size; ++l) {
           if (inter_pos < inter[l]) {
             for (uint32_t m = l + 1; m < inter_size + 1; ++m) {
               inter[m] = inter[m - 1];
@@ -629,12 +631,18 @@ void entis_poly_fill(uint32_t *x, uint32_t *y, uint32_t n) {
             break;
           }
         }
+        if(l == inter_size){
+          inter[inter_size] = inter_pos;
+        }
         inter_size++;
         // INSERT INTERSECTION
       }
     }
     for (uint32_t j = 0; j < inter_size; j += 2) {
-      entis_line(inter[j], i, inter[(j + 1) % inter_size], i);
+      for(uint32_t k = inter[j]; k < inter[(j+1)]; ++k){
+        entis_point(k, i);
+      }
+      /* entis_line(inter[j], i, inter[(j + 1) % inter_size], i); */
     }
     free(inter);
   }

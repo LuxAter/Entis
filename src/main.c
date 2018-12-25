@@ -14,7 +14,6 @@ void append(char* s, char c) {
 
 int main(int argc, char* argv[]) {
   entis_init(500, 500, ENTIS_XCB | ENTIS_TTF);
-  entis_background_int(0xff5722);
   entis_clear();
   entis_color_int(0xff0000);
   entis_rectangle_fill(0,0,100,100);
@@ -28,7 +27,7 @@ int main(int argc, char* argv[]) {
     if (ev.x <= 100 && ev.y <= 100) {
       break;
     } else if (ev.x <= 100 && ev.y <= 200) {
-      printf("HI!");
+      printf("HI!\n");
       entis_poly_fill(x, y, n);
     } else {
       /* entis_color_int(rand() % 0xffffff); */

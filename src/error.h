@@ -11,6 +11,7 @@ extern "C" {
 void entis_error(const char* fmt, ...);
 void entis_warning(const char* fmt, ...);
 void entis_info(const char* fmt, ...);
+void entis_debug(const char* fmt, ...);
 void entis_note(const char* fmt, ...);
 
 #ifdef __cplusplus
