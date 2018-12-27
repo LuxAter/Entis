@@ -76,7 +76,8 @@ enum KeyCodes {
   KEY_SCROLL_LOCK = 281,
   KEY_NUM_LOCK = 282,
   KEY_PRINT_SCREEN = 283,
-  KEY_PAUSE = 284
+  KEY_PAUSE = 284,
+  KEY_SHIFT = 340
 };
 
 enum ModifierKeys{

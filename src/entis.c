@@ -18,6 +18,7 @@ static FT_Face face_;
 
 static bool xcb_ = false;
 static bool ft_ = false;
+static bool font_ = false;
 
 static uint32_t fg_ = 0xffffff, bg_ = 0x000000;
 static uint32_t width_ = 0, height_ = 0;
@@ -191,6 +192,13 @@ void entis_resize(uint32_t width, uint32_t height) {
   entis_xcb_reload_pixmap();
 }
 
+uint32_t entis_width() { return width_; }
+uint32_t entis_height() { return height_; }
+void entis_size(uint32_t* width, uint32_t* height) {
+  *width = width_;
+  *height = height_;
+}
+
 void entis_clear() {
   for (uint32_t i = 0; i < height_; ++i) {
     for (uint32_t j = 0; j < width_; ++j) {
@@ -315,19 +323,17 @@ entis_event entis_poll_event_type(uint32_t type) {
 }
 
 entis_key_event entis_wait_key() {
-  return entis_wait_event_type(ENTIS_KEY_PRESS | ENTIS_KEY_RELEASE).key;
+  return entis_wait_event_type(ENTIS_KEY_PRESS).key;
 }
 entis_key_event entis_poll_key() {
-  return entis_poll_event_type(ENTIS_KEY_PRESS | ENTIS_KEY_RELEASE).key;
+  return entis_poll_event_type(ENTIS_KEY_PRESS).key;
 }
 
 entis_button_event entis_wait_button() {
-  return entis_wait_event_type(ENTIS_BUTTON_PRESS | ENTIS_BUTTON_RELEASE)
-      .button;
+  return entis_wait_event_type(ENTIS_BUTTON_PRESS).button;
 }
 entis_button_event entis_poll_button() {
-  return entis_poll_event_type(ENTIS_BUTTON_PRESS | ENTIS_BUTTON_RELEASE)
-      .button;
+  return entis_poll_event_type(ENTIS_BUTTON_PRESS).button;
 }
 
 void entis_clear_events() {
@@ -427,21 +433,22 @@ bool entis_load_font(const char* font_name) {
     entis_warning("Could not open \"%s\" font", font_name);
     return false;
   }
+  font_ = true;
   error = FT_Set_Char_Size(face_, 0, 12 * 64, 276, 276);
   if (error) {
     fprintf(stderr, "[ERROR FreeType2] Failed to set char size\n");
   }
   return true;
 }
-void enti_font_size(uint16_t pt, uint32_t dpi) {
+void entis_font_size(uint16_t pt, uint32_t dpi) {
   FT_Error error = FT_Set_Char_Size(face_, pt * 64, pt * 64, dpi, dpi);
   if (error) {
     entis_warning("Failed to set character size to %lu with dpi of %lu", pt,
                   dpi);
   }
 }
-void enti_font_px(uint16_t px) {
-  FT_Error error = FT_Set_Pixel_Sizes(face_, 0, 12);
+void entis_font_px(uint16_t px) {
+  FT_Error error = FT_Set_Pixel_Sizes(face_, 0, px);
   if (error) {
     entis_warning("Failed to set character size to %lupx", px);
   }
@@ -583,18 +590,18 @@ void entis_rectangle_fill(uint32_t x, uint32_t y, uint32_t width,
   }
 }
 
-void entis_circle_fill(uint32_t cx, uint32_t cy, uint32_t r) {
-  uint32_t rsq = r * r;
+void entis_circle_fill(uint32_t cx, uint32_t cy, int32_t r) {
+  int32_t rsq = r * r;
   for (int32_t y = -r; y <= r; ++y) {
-    uint32_t ysq = y * y;
-    for (uint32_t x = -r; x <= r; ++x) {
-      if (x * x + ysq < rsq) {
+    int32_t ysq = y * y;
+    for (int32_t x = -r; x <= r; ++x) {
+      if ((x * x) + ysq < rsq) {
         entis_point(cx + x, cy + y);
       }
     }
   }
 }
-void entis_poly_fill(uint32_t *x, uint32_t *y, uint32_t n) {
+void entis_poly_fill(uint32_t* x, uint32_t* y, uint32_t n) {
   uint32_t min_y = y[0];
   uint32_t max_y = y[0];
   for (uint32_t i = 1; i < n; ++i) {
@@ -614,7 +621,8 @@ void entis_poly_fill(uint32_t *x, uint32_t *y, uint32_t n) {
         } else {
           double m =
               ((double)y[k] - (double)y[j]) / ((double)x[k] - (double)x[j]);
-          inter_pos = (uint32_t)(((double)i - (double)y[j] + (m * (double)x[j])) / m);
+          inter_pos =
+              (uint32_t)(((double)i - (double)y[j] + (m * (double)x[j])) / m);
         }
         if (inter_size == inter_mem) {
           uint32_t* temp_inter =
@@ -624,28 +632,186 @@ void entis_poly_fill(uint32_t *x, uint32_t *y, uint32_t n) {
         uint32_t l = 0;
         for (l = 0; l < inter_size; ++l) {
           if (inter_pos < inter[l]) {
-            for (uint32_t m = l + 1; m < inter_size + 1; ++m) {
+            for (uint32_t m = inter_size; m > l; --m) {
               inter[m] = inter[m - 1];
             }
             inter[l] = inter_pos;
             break;
           }
         }
-        if(l == inter_size){
+        if (l == inter_size) {
           inter[inter_size] = inter_pos;
         }
         inter_size++;
-        // INSERT INTERSECTION
       }
     }
     for (uint32_t j = 0; j < inter_size; j += 2) {
-      for(uint32_t k = inter[j]; k < inter[(j+1)]; ++k){
+      for (uint32_t k = inter[j]; k < inter[(j + 1)]; ++k) {
         entis_point(k, i);
       }
-      /* entis_line(inter[j], i, inter[(j + 1) % inter_size], i); */
     }
     free(inter);
   }
+}
+
+void entis_text(uint32_t x, uint32_t y, const char* str) {
+  if (font_ == false) {
+    return;
+  }
+  uint16_t max_bearing = 0;
+  uint32_t n = strlen(str);
+  for (uint32_t i = 0; i < n; ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    if (face_->glyph->metrics.horiBearingY > max_bearing) {
+      max_bearing = face_->glyph->metrics.horiBearingY >> 6;
+    }
+  }
+  uint32_t base_fg = fg_;
+  for (uint32_t i = 0; i < n; ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    FT_Bitmap* bitmap = &face_->glyph->bitmap;
+    for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
+      for (uint16_t by = 0; by < bitmap->rows; ++by) {
+        uint32_t base_bg = entis_get_color(
+            x + bx, y - face_->glyph->bitmap_top + by + max_bearing);
+        double dr = ((base_fg >> 16) & 0xFF) - ((base_bg >> 16) & 0xFF);
+        double dg = ((base_fg >> 8) & 0xFF) - ((base_bg >> 8) & 0xFF);
+        double db = ((base_fg)&0xFF) - ((base_bg)&0xFF);
+        uint8_t red = (base_bg >> 16) & 0xFF;
+        uint8_t green = (base_bg >> 8) & 0xFF;
+        uint8_t blue = base_bg & 0xFF;
+        double perc = bitmap->buffer[by * bitmap->width + bx] / 255.0;
+        entis_color_rgb((dr * perc) + red, (dg * perc) + green,
+                        (db * perc) + blue);
+        entis_point(x + bx, y - face_->glyph->bitmap_top + by + max_bearing);
+      }
+    }
+    x += face_->glyph->advance.x >> 6;
+  }
+  entis_color_int(base_fg);
+}
+void entis_btext(uint32_t x, uint32_t y, const char* str) {
+  if (font_ == false) {
+    return;
+  }
+  uint16_t max_bearing = 0;
+  uint32_t n = strlen(str);
+  for (uint32_t i = 0; i < n; ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    if (face_->glyph->metrics.horiBearingY > max_bearing) {
+      max_bearing = face_->glyph->metrics.horiBearingY >> 6;
+    }
+  }
+  uint32_t base_fg = fg_;
+  for (uint32_t i = 0; i < n; ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    FT_Bitmap* bitmap = &face_->glyph->bitmap;
+    for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
+      for (uint16_t by = 0; by < bitmap->rows; ++by) {
+        if (bitmap->buffer[by * bitmap->width + bx] != 0) {
+          uint32_t base_bg =
+              entis_get_color(x + bx, y - face_->glyph->bitmap_top + by);
+          double dr = ((base_fg >> 16) & 0xFF) - ((base_bg >> 16) & 0xFF);
+          double dg = ((base_fg >> 8) & 0xFF) - ((base_bg >> 8) & 0xFF);
+          double db = ((base_fg)&0xFF) - ((base_bg)&0xFF);
+          uint8_t red = (base_bg >> 16) & 0xFF;
+          uint8_t green = (base_bg >> 8) & 0xFF;
+          uint8_t blue = base_bg & 0xFF;
+          double perc = bitmap->buffer[by * bitmap->width + bx] / 255.0;
+          entis_color_rgb((dr * perc) + red, (dg * perc) + green,
+                          (db * perc) + blue);
+          entis_point(x + bx, y - face_->glyph->bitmap_top + by);
+        }
+      }
+    }
+    x += face_->glyph->advance.x >> 6;
+  }
+  entis_color_int(base_fg);
+}
+void entis_mtext(uint32_t x, uint32_t y, const char* str) {
+  if (font_ == false) {
+    return;
+  }
+  uint16_t max_bearing = 0;
+  uint32_t n = strlen(str);
+  for (uint32_t i = 0; i < n; ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    if (face_->glyph->metrics.horiBearingY > max_bearing) {
+      max_bearing = face_->glyph->metrics.horiBearingY >> 6;
+    }
+  }
+  for (uint32_t i = 0; i < n; ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    FT_Bitmap* bitmap = &face_->glyph->bitmap;
+    for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
+      for (uint16_t by = 0; by < bitmap->rows; ++by) {
+        if (bitmap->buffer[by * bitmap->width + bx] > 128) {
+          /* entis_point(x + bx, y - face_->glyph->bitmap_top + by + max_bearing); */
+          entis_point(x + bx, y + by + (face_->glyph->metrics.vertBearingY >> 6));
+          /* entis_point(x + bx, y - face_->glyph->bitmap_top + by); */
+        }
+      }
+    }
+    x += face_->glyph->advance.x >> 6;
+  }
+}
+void entis_bmtext(uint32_t x, uint32_t y, const char* str) {
+  if (font_ == false) {
+    return;
+  }
+  uint16_t max_bearing = 0;
+  uint32_t n = strlen(str);
+  for (uint32_t i = 0; i < n; ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    if (face_->glyph->metrics.horiBearingY > max_bearing) {
+      max_bearing = face_->glyph->metrics.horiBearingY >> 6;
+    }
+  }
+  for (uint32_t i = 0; i < n; ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    FT_Bitmap* bitmap = &face_->glyph->bitmap;
+    for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
+      for (uint16_t by = 0; by < bitmap->rows; ++by) {
+        if (bitmap->buffer[by * bitmap->width + bx] > 128) {
+          entis_point(x + bx, y - face_->glyph->bitmap_top + by);
+          /* entis_point(x + bx, y - face_->glyph->bitmap_top + by); */
+        }
+      }
+    }
+    x += face_->glyph->advance.x >> 6;
+  }
+}
+
+void entis_text_size(const char* str, uint32_t* width, uint32_t* height) {
+  if (face_ == false) {
+    return;
+  }
+  uint32_t lwidth = 0;
+  uint32_t lheight = 0;
+  for (uint32_t i = 0; i < strlen(str); ++i) {
+    FT_Error error = FT_Load_Char(face_, str[i], FT_LOAD_RENDER);
+    if (error) continue;
+    entis_note(">>>%u", lwidth);
+    lwidth += face_->glyph->metrics.horiAdvance >> 6;
+    lheight = max(lheight, face_->glyph->metrics.height);
+  }
+  entis_note(">>%u", lwidth);
+  *width = lwidth;
+  *height = lheight;
+}
+
+uint32_t entis_text_advance(const char* str) {
+  uint32_t w = 0, h = 0;
+  entis_text_size(str, &w, &h);
+  return w;
 }
 
 uint32_t entis_get_color(uint32_t x, uint32_t y) {

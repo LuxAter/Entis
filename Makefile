@@ -81,7 +81,12 @@ pre-entis:
 
 $(ENTIS): $(ENTIS_OBJS) FORCE
 	$(call print_link_exe,$(shell basename $(ENTIS)))
+ifdef $(PRODUCTION)
 	$(CXX) $(ENTIS_OBJS) $(LIBENTIS.A) $(LINK) $(COMMON_INCLUDE) -o $(ENTIS)
+else
+	$(CXX) $(ENTIS_OBJS) $(LIBENTIS.A) $(ROOT)/build/libfreetype.a/lib/libfreetype.a  $(ROOT)/build/libpng.a/lib/libpng.a $(LINK) $(COMMON_INCLUDE) -o $(ENTIS)
+endif
+
 
 install-entis: build-entis
 	$(call install_target,$(shell basename $(ENTIS)))
@@ -113,9 +118,12 @@ pre-libentis.a:
 $(LIBENTIS.A): $(LIBENTIS.A_OBJS) FORCE
 	$(call print_link_lib,$(shell basename $(LIBENTIS.A)))
 	ar rcs $@ $(LIBENTIS.A_OBJS)
+ifdef $(PRODUCTION)
+	printf "C\n"
 	mkdir -p $(ROOT)/tmp/libpng.a && cd $(ROOT)/tmp/libpng.a && ar x /home/arden/Programming/c/entis/build/libpng.a/lib/libpng.a && ar qc $(ROOT)/$@ $(ROOT)/tmp/libpng.a/*.o && rm -rf $(ROOT)/tmp/libpng.a
 	mkdir -p $(ROOT)/tmp/libfreetype.a && cd $(ROOT)/tmp/libfreetype.a && ar x /home/arden/Programming/c/entis/build/libfreetype.a/lib/libfreetype.a && ar qc $(ROOT)/$@ $(ROOT)/tmp/libfreetype.a/*.o && rm -rf $(ROOT)/tmp/libfreetype.a
 	rm $(ROOT)/tmp -rf
+endif
 
 install-libentis.a: build-libentis.a
 	$(call install_target,$(shell basename $(LIBENTIS.A)))
