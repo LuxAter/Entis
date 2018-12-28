@@ -15,30 +15,29 @@ void append(char* s, char c) {
 int main(int argc, char* argv[]) {
   entis_init(500, 500, ENTIS_XCB | ENTIS_TTF);
   entis_load_font("scpnfc.ttf");
-  uint32_t x = 0, y = 50;
-  char str[2];
-  str[1] = 0;
+  char *str = "\uf303";
+  /* str[1] = 0; */
   entis_clear();
-  /* entis_font_size(25, 0); */
-  entis_font_px(50);
-  entis_line(0, 50, 1000, 50);
+  /* entis_font_size(24, 0); */
+  entis_font_px(400);
   while (true) {
     entis_key_event ev = entis_wait_key();
     if (ev.keycode == KEY_ESCAPE) {
       break;
     } else {
-      str[0] = ev.keysym;
-      entis_debug("%d>>%s<<", x, str);
-      entis_mtext(x, y, str);
-      x += entis_text_advance(str);
-      if(x > entis_width()){
-        x = 0;
-        y += 50;
-        if(y > entis_height()){
-          entis_clear();
-          y = 50;
-        }
-      }
+      /* str[0] = ev.keysym; */
+      /* str[0] = 0xf303; */
+      entis_clear();
+      entis_mtext(50, 50, str);
+      uint32_t cw = 0, ch = 0;
+      uint32_t gw = 0, gh = 0;
+      entis_char_size(str[0], &cw, &ch);
+      entis_glyph_size(&gw, &gh);
+      entis_color_int(ENTIS_BLUE);
+      entis_rectangle(50, 50, gw, gh);
+      entis_color_int(ENTIS_GREEN);
+      entis_rectangle(50,50, cw, ch);
+      entis_color_int(ENTIS_WHITE);
     }
   }
   entis_term();
