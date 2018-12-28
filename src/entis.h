@@ -136,10 +136,18 @@ void entis_poly_fill(uint32_t* x, uint32_t* y, uint32_t n);
 void entis_text(uint32_t x, uint32_t y, const char* str);
 void entis_btext(uint32_t x, uint32_t y, const char* str);
 void entis_mtext(uint32_t x, uint32_t y, const char* str);
+void entis_lmtext(uint32_t x, uint32_t y, const uint16_t* str);
 void entis_bmtext(uint32_t x, uint32_t y, const char* str);
 
 void entis_text_size(const char* str, uint32_t* width, uint32_t* height);
-uint32_t entis_text_advance(const char* str);
+uint32_t entis_text_width(const char* str);
+uint32_t entis_text_height(const char* str);
+void entis_char_size(char ch, uint32_t* width, uint32_t* height);
+uint32_t entis_char_width(char ch);
+uint32_t entis_char_height(char ch);
+void entis_glyph_size(uint32_t* width, uint32_t* height);
+uint32_t entis_glyph_width();
+uint32_t entis_glyph_height();
 
 uint32_t entis_get_color(uint32_t x, uint32_t y);
 
