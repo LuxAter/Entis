@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <wchar.h>
 
 #include <xcb/xcb.h>
 
@@ -15,6 +16,7 @@ static xcb_gcontext_t gcontext_, fg_gcontext_, bg_gcontext_;
 
 static FT_Library library_;
 static FT_Face face_;
+static uint32_t offset_;
 
 static bool xcb_ = false;
 static bool ft_ = false;
@@ -438,6 +440,7 @@ bool entis_load_font(const char* font_name) {
   if (error) {
     fprintf(stderr, "[ERROR FreeType2] Failed to set char size\n");
   }
+  entis_font_offset();
   return true;
 }
 void entis_font_size(uint16_t pt, uint32_t dpi) {
@@ -446,13 +449,23 @@ void entis_font_size(uint16_t pt, uint32_t dpi) {
     entis_warning("Failed to set character size to %lu with dpi of %lu", pt,
                   dpi);
   }
+  entis_font_offset();
 }
 void entis_font_px(uint16_t px) {
   FT_Error error = FT_Set_Pixel_Sizes(face_, 0, px);
   if (error) {
     entis_warning("Failed to set character size to %lupx", px);
   }
-  xcb_connection_t* ensti_xcb_connection();
+  entis_font_offset();
+}
+
+void entis_font_offset() {
+  offset_ = 0;
+  for (uint32_t ch = 32; ch < 127; ++ch) {
+    FT_Error error = FT_Load_Char(face_, ch, FT_LOAD_RENDER);
+    if (error) continue;
+    offset_ = max(offset_, face_->glyph->metrics.horiBearingY >> 6);
+  }
 }
 
 void entis_point(uint32_t x, uint32_t y) {
@@ -672,13 +685,13 @@ void entis_text(uint32_t x, uint32_t y, const char* str) {
     prev = index;
     FT_Error error = FT_Load_Glyph(face_, index, FT_LOAD_RENDER);
     if (error) continue;
+    uint32_t offset = offset_ - (face_->glyph->metrics.horiBearingY >> 6);
     FT_Bitmap* bitmap = &face_->glyph->bitmap;
     for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
       for (uint16_t by = 0; by < bitmap->rows; ++by) {
         if (bitmap->buffer[by * bitmap->width + bx] != 0) {
           uint32_t base_bg = entis_get_color(
-              x + bx, y + (face_->glyph->metrics.vertAdvance >> 6) -
-                          face_->glyph->bitmap_top + by);
+              x + bx, y + offset + by);
           double dr = ((base_fg >> 16) & 0xFF) - ((base_bg >> 16) & 0xFF);
           double dg = ((base_fg >> 8) & 0xFF) - ((base_bg >> 8) & 0xFF);
           double db = ((base_fg)&0xFF) - ((base_bg)&0xFF);
@@ -688,8 +701,49 @@ void entis_text(uint32_t x, uint32_t y, const char* str) {
           double perc = bitmap->buffer[by * bitmap->width + bx] / 255.0;
           entis_color_rgb((dr * perc) + red, (dg * perc) + green,
                           (db * perc) + blue);
-          entis_point(x + bx, y + (face_->glyph->metrics.vertAdvance >> 6) -
-                                  face_->glyph->bitmap_top + by);
+          entis_point(x + bx, y + offset + by);
+        }
+      }
+    }
+    x += face_->glyph->advance.x >> 6;
+  }
+  entis_color_int(base_fg);
+}
+void entis_wtext(uint32_t x, uint32_t y, const wchar_t* str) {
+  if (font_ == false) {
+    return;
+  }
+  uint32_t n = wcslen(str);
+  uint32_t base_fg = fg_;
+  bool kerning = FT_HAS_KERNING(face_);
+  uint32_t prev = 0;
+  for (uint32_t i = 0; i < n; ++i) {
+    uint32_t index = FT_Get_Char_Index(face_, str[i]);
+    if (kerning && prev && index) {
+      FT_Vector delta;
+      FT_Get_Kerning(face_, prev, index, FT_KERNING_DEFAULT, &delta);
+      x += delta.x >> 6;
+    }
+    prev = index;
+    FT_Error error = FT_Load_Glyph(face_, index, FT_LOAD_RENDER);
+    if (error) continue;
+    uint32_t offset = offset_ - (face_->glyph->metrics.horiBearingY >> 6);
+    FT_Bitmap* bitmap = &face_->glyph->bitmap;
+    for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
+      for (uint16_t by = 0; by < bitmap->rows; ++by) {
+        if (bitmap->buffer[by * bitmap->width + bx] != 0) {
+          uint32_t base_bg = entis_get_color(
+              x + bx, y + offset + by);
+          double dr = ((base_fg >> 16) & 0xFF) - ((base_bg >> 16) & 0xFF);
+          double dg = ((base_fg >> 8) & 0xFF) - ((base_bg >> 8) & 0xFF);
+          double db = ((base_fg)&0xFF) - ((base_bg)&0xFF);
+          uint8_t red = (base_bg >> 16) & 0xFF;
+          uint8_t green = (base_bg >> 8) & 0xFF;
+          uint8_t blue = base_bg & 0xFF;
+          double perc = bitmap->buffer[by * bitmap->width + bx] / 255.0;
+          entis_color_rgb((dr * perc) + red, (dg * perc) + green,
+                          (db * perc) + blue);
+          entis_point(x + bx, y + offset + by);
         }
       }
     }
@@ -720,8 +774,48 @@ void entis_btext(uint32_t x, uint32_t y, const char* str) {
       for (uint16_t by = 0; by < bitmap->rows; ++by) {
         if (bitmap->buffer[by * bitmap->width + bx] != 0) {
           uint32_t base_bg = entis_get_color(
-              x + bx, y + (face_->glyph->metrics.vertAdvance >> 6) -
-                          face_->glyph->bitmap_top + by);
+              x + bx, y - face_->glyph->bitmap_top + by);
+          double dr = ((base_fg >> 16) & 0xFF) - ((base_bg >> 16) & 0xFF);
+          double dg = ((base_fg >> 8) & 0xFF) - ((base_bg >> 8) & 0xFF);
+          double db = ((base_fg)&0xFF) - ((base_bg)&0xFF);
+          uint8_t red = (base_bg >> 16) & 0xFF;
+          uint8_t green = (base_bg >> 8) & 0xFF;
+          uint8_t blue = base_bg & 0xFF;
+          double perc = bitmap->buffer[by * bitmap->width + bx] / 255.0;
+          entis_color_rgb((dr * perc) + red, (dg * perc) + green,
+                          (db * perc) + blue);
+          entis_point(x + bx, y - face_->glyph->bitmap_top + by);
+        }
+      }
+    }
+    x += face_->glyph->advance.x >> 6;
+  }
+  entis_color_int(base_fg);
+}
+void entis_wbtext(uint32_t x, uint32_t y, const wchar_t* str) {
+  if (font_ == false) {
+    return;
+  }
+  uint32_t n = wcslen(str);
+  uint32_t base_fg = fg_;
+  bool kerning = FT_HAS_KERNING(face_);
+  uint32_t prev = 0;
+  for (uint32_t i = 0; i < n; ++i) {
+    uint32_t index = FT_Get_Char_Index(face_, str[i]);
+    if (kerning && prev && index) {
+      FT_Vector delta;
+      FT_Get_Kerning(face_, prev, index, FT_KERNING_DEFAULT, &delta);
+      x += delta.x >> 6;
+    }
+    prev = index;
+    FT_Error error = FT_Load_Glyph(face_, index, FT_LOAD_RENDER);
+    if (error) continue;
+    FT_Bitmap* bitmap = &face_->glyph->bitmap;
+    for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
+      for (uint16_t by = 0; by < bitmap->rows; ++by) {
+        if (bitmap->buffer[by * bitmap->width + bx] != 0) {
+          uint32_t base_bg = entis_get_color(
+              x + bx, y - face_->glyph->bitmap_top + by);
           double dr = ((base_fg >> 16) & 0xFF) - ((base_bg >> 16) & 0xFF);
           double dg = ((base_fg >> 8) & 0xFF) - ((base_bg >> 8) & 0xFF);
           double db = ((base_fg)&0xFF) - ((base_bg)&0xFF);
@@ -757,26 +851,10 @@ void entis_mtext(uint32_t x, uint32_t y, const char* str) {
     FT_Error error = FT_Load_Glyph(face_, index, FT_LOAD_RENDER);
     if (error) continue;
     FT_Bitmap* bitmap = &face_->glyph->bitmap;
-    entis_debug("CHAR: %c", str[i]);
-    entis_debug("Height: %u", face_->glyph->metrics.height >> 6);
-    entis_debug("Width: %u", face_->glyph->metrics.width >> 6);
-    entis_debug("HAdv: %u", face_->glyph->metrics.horiAdvance >> 6);
-    entis_debug("HBerX: %u", face_->glyph->metrics.horiBearingX >> 6);
-    entis_debug("HBerY: %u", face_->glyph->metrics.horiBearingY >> 6);
-    entis_debug("VAdv: %u", face_->glyph->metrics.vertAdvance >> 6);
-    entis_debug("VBerX: %u", face_->glyph->metrics.vertBearingX >> 6);
-    entis_debug("VBerY: %u", face_->glyph->metrics.vertBearingY >> 6);
-    entis_note("ORIGIN: %u", (face_->glyph->metrics.vertBearingY >> 6) +
-                                 (face_->glyph->metrics.horiBearingY >> 6));
-
-    uint32_t offset = (face_->glyph->metrics.vertAdvance >> 6) -
-                      (face_->glyph->metrics.height >> 6);
+    uint32_t offset = offset_ - (face_->glyph->metrics.horiBearingY >> 6);
     for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
       for (uint16_t by = 0; by < bitmap->rows; ++by) {
         if (bitmap->buffer[by * bitmap->width + bx] > 128) {
-          /* entis_point(x + bx, y + (face_->glyph->metrics.vertAdvance >> 6) -
-           */
-          /*                         face_->glyph->bitmap_top + by); */
           entis_point(x + bx, y + offset + by);
         }
       }
@@ -784,14 +862,11 @@ void entis_mtext(uint32_t x, uint32_t y, const char* str) {
     x += face_->glyph->advance.x >> 6;
   }
 }
-void entis_lmtext(uint32_t x, uint32_t y, const uint16_t* str) {
+void entis_wmtext(uint32_t x, uint32_t y, const wchar_t* str) {
   if (font_ == false) {
     return;
   }
-  uint32_t n = 0;
-  while (str[n] != 0) {
-    n++;
-  }
+  uint32_t n = wcslen(str);
   bool kerning = FT_HAS_KERNING(face_);
   uint32_t prev = 0;
   for (uint32_t i = 0; i < n; ++i) {
@@ -805,26 +880,11 @@ void entis_lmtext(uint32_t x, uint32_t y, const uint16_t* str) {
     FT_Error error = FT_Load_Glyph(face_, index, FT_LOAD_RENDER);
     if (error) continue;
     FT_Bitmap* bitmap = &face_->glyph->bitmap;
-    entis_debug("CHAR: %x", str[i]);
-    entis_debug("Height: %u", face_->glyph->metrics.height >> 6);
-    entis_debug("Width: %u", face_->glyph->metrics.width >> 6);
-    entis_debug("HAdv: %u", face_->glyph->metrics.horiAdvance >> 6);
-    entis_debug("HBerX: %u", face_->glyph->metrics.horiBearingX >> 6);
-    entis_debug("HBerY: %u", face_->glyph->metrics.horiBearingY >> 6);
-    entis_debug("VAdv: %u", face_->glyph->metrics.vertAdvance >> 6);
-    entis_debug("VBerX: %u", face_->glyph->metrics.vertBearingX >> 6);
-    entis_debug("VBerY: %u", face_->glyph->metrics.vertBearingY >> 6);
-    entis_note("ORIGIN: %u", (face_->glyph->metrics.vertBearingY >> 6) +
-                                 (face_->glyph->metrics.horiBearingY >> 6));
 
-    uint32_t offset = (face_->glyph->metrics.vertAdvance >> 6) -
-                      (face_->glyph->metrics.height >> 6);
+    uint32_t offset = offset_ - (face_->glyph->metrics.horiBearingY >> 6);
     for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
       for (uint16_t by = 0; by < bitmap->rows; ++by) {
         if (bitmap->buffer[by * bitmap->width + bx] > 128) {
-          /* entis_point(x + bx, y + (face_->glyph->metrics.vertAdvance >> 6) -
-           */
-          /*                         face_->glyph->bitmap_top + by); */
           entis_point(x + bx, y + offset + by);
         }
       }
@@ -837,6 +897,35 @@ void entis_bmtext(uint32_t x, uint32_t y, const char* str) {
     return;
   }
   uint32_t n = strlen(str);
+  bool kerning = FT_HAS_KERNING(face_);
+  uint32_t prev = 0;
+  for (uint32_t i = 0; i < n; ++i) {
+    uint32_t index = FT_Get_Char_Index(face_, str[i]);
+    if (kerning && prev && index) {
+      FT_Vector delta;
+      FT_Get_Kerning(face_, prev, index, FT_KERNING_DEFAULT, &delta);
+      x += delta.x >> 6;
+    }
+    prev = index;
+    FT_Error error = FT_Load_Glyph(face_, index, FT_LOAD_RENDER);
+    if (error) continue;
+    FT_Bitmap* bitmap = &face_->glyph->bitmap;
+    for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
+      for (uint16_t by = 0; by < bitmap->rows; ++by) {
+        if (bitmap->buffer[by * bitmap->width + bx] > 128) {
+          entis_point(x + bx, y - face_->glyph->bitmap_top + by);
+          /* entis_point(x + bx, y - face_->glyph->bitmap_top + by); */
+        }
+      }
+    }
+    x += face_->glyph->advance.x >> 6;
+  }
+}
+void entis_wbmtext(uint32_t x, uint32_t y, const wchar_t* str) {
+  if (font_ == false) {
+    return;
+  }
+  uint32_t n = wcslen(str);
   bool kerning = FT_HAS_KERNING(face_);
   uint32_t prev = 0;
   for (uint32_t i = 0; i < n; ++i) {

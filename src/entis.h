@@ -7,6 +7,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <wchar.h>
 
 #include <ft2build.h>
 #include <xcb/xcb.h>
@@ -115,6 +116,7 @@ void entis_background_drgb(double r, double g, double b);
 bool entis_load_font(const char* font_name);
 void entis_font_size(uint16_t pt, uint32_t dpi);
 void entis_font_px(uint16_t px);
+void entis_font_offset();
 
 void entis_point(uint32_t x, uint32_t y);
 void entis_points(uint32_t* x, uint32_t* y, uint32_t n);
@@ -134,10 +136,13 @@ void entis_poly_fill(uint32_t* x, uint32_t* y, uint32_t n);
 
 // TODO: Figure out the proper shifting to align baseline for all letters! I can do it!!
 void entis_text(uint32_t x, uint32_t y, const char* str);
+void entis_wtext(uint32_t x, uint32_t y, const wchar_t* str);
 void entis_btext(uint32_t x, uint32_t y, const char* str);
+void entis_wbtext(uint32_t x, uint32_t y, const wchar_t* str);
 void entis_mtext(uint32_t x, uint32_t y, const char* str);
-void entis_lmtext(uint32_t x, uint32_t y, const uint16_t* str);
+void entis_wmtext(uint32_t x, uint32_t y, const wchar_t* str);
 void entis_bmtext(uint32_t x, uint32_t y, const char* str);
+void entis_wbmtext(uint32_t x, uint32_t y, const wchar_t* str);
 
 void entis_text_size(const char* str, uint32_t* width, uint32_t* height);
 uint32_t entis_text_width(const char* str);
