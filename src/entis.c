@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <wchar.h>
+#include <dirent.h>
 
 #include <xcb/xcb.h>
 

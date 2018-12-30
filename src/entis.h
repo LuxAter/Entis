@@ -1,10 +1,39 @@
+/* Copyright (C)
+ * 2018 - Arden Rasmussen
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ *
+ */
 #ifndef ENTIS_ENTIS_H_
 #define ENTIS_ENTIS_H_
+
+/**
+ * @file entis.h
+ * @brief Core of entis graphics library
+ * @author Arden Rasmussen
+ * @version 2.0
+ * @date 2018-12-28
+ *
+ * This file contains the core of the entis graphics library. All user calls
+ * should be to one of these functions.
+ */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include <dirent.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <wchar.h>
@@ -61,18 +90,95 @@ extern "C" {
 
 /**
  * @defgroup Core
- * Core initialization and termination of entis and the repsective submodules.
+ * Core initialization and termination of entis and the respective sub modules.
  * @{ */
 
-enum EntisInitFlags { ENTIS_XCB = 1 << 0, ENTIS_TTF = 1 << 1 };
+/**
+ * @brief Initialization flags
+ *
+ * These flags determine which modules should be initialized.
+ */
+enum EntisInitFlags {
+  ENTIS_XCB = 1 << 0,  //!< Initializes XCB interface
+  ENTIS_TTF = 1 << 1   //!< Initializes FreeType2 Library
+};
 
+/**
+ * @brief Initializes Entis Library
+ *
+ * This function constructs the internal framebuffer and initializes other
+ * sub modules such as XCB, and FreeType2 as requested. This function must be
+ * called before any other entis library function calls.
+ *
+ * @param [in] width The width of the framebuffer/window to construct.
+ * @param [in] height The height of the framebuffer/window to construct.
+ * @param [in] flags Additional initialization flags as declared by
+ * `EntisInitFlags`.
+ *
+ * @see EntisInitFlags
+ * @see entis_init_xcb
+ * @see entis_init_ft
+ *
+ * @return `true` if initialization of the core module and all desired sub
+ * modules is successful, `false` otherwise.
+ */
 bool entis_init(uint32_t width, uint32_t height, uint32_t flags);
+/**
+ * @brief Terminates Entis Library
+ *
+ * Terminates the entis library and all sub modules which have been initialized.
+ * This frees the memory of the framebuffer, and so no entis function can be
+ * called after the termination is complete.
+ *
+ * @see entis_term_xcb
+ * @see entis_term_ft
+ *
+ * @return `true` if termination is successful, `false` otherwise.
+ */
 bool entis_term();
 
+/**
+ * @brief Initalize XCB module
+ *
+ * This function initializes the XCB module, and all requirements of the XCB
+ * conneciton. This includes constructing a window, initializing a double buffer
+ * for rendering, and generating graphics contexts for rendering the pixmap.
+ * This function must be called before any input function, as all input function
+ * are reliant on the XCB connection that is established.
+ *
+ * @param [in] title The title of the window to construct.
+ *
+ * @return `true` if XCB connection and window construction were successful,
+ * `false` otherwise.
+ */
 bool entis_init_xcb(const char* title);
+/**
+ * @brief Terminates XCB module
+ *
+ * This function terminates the XCB connection, and destroys the constructed
+ * window, pixmap, and graphics contexts.
+ *
+ * @return `true` if the XCB connection is successfully terminated, `false`
+ * otherwise.
+ */
 bool entis_term_xcb();
 
+/**
+ * @brief Initalizes TTF module
+ *
+ * This function initializes the FreeType2 library that is neccesary for text
+ * rendering.
+ *
+ * @return `true` if initialization is successful, `false` otherwise.
+ */
 bool entis_init_ft();
+/**
+ * @brief Terminates TTF module
+ *
+ * This function frees the memory stored in the font, and the FreeType2 library.
+ *
+ * @return `true`
+ */
 bool entis_term_ft();
 
 void entis_resize(uint32_t width, uint32_t height);
@@ -112,7 +218,6 @@ void entis_background_int(uint32_t color);
 void entis_background_rgb(uint8_t r, uint8_t g, uint8_t b);
 void entis_background_drgb(double r, double g, double b);
 
-// TODO: Add searching current directory, and then search font diretorys, with a waring?
 bool entis_load_font(const char* font_name);
 void entis_font_size(uint16_t pt, uint32_t dpi);
 void entis_font_px(uint16_t px);
@@ -134,7 +239,6 @@ void entis_rectangle_fill(uint32_t x, uint32_t y, uint32_t width,
 void entis_circle_fill(uint32_t cx, uint32_t cy, int32_t r);
 void entis_poly_fill(uint32_t* x, uint32_t* y, uint32_t n);
 
-// TODO: Figure out the proper shifting to align baseline for all letters! I can do it!!
 void entis_text(uint32_t x, uint32_t y, const char* str);
 void entis_wtext(uint32_t x, uint32_t y, const wchar_t* str);
 void entis_btext(uint32_t x, uint32_t y, const char* str);
