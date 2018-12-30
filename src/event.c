@@ -7,6 +7,7 @@
 #include "entis.h"
 #include "key_codes.h"
 
+
 // TODO: Implement a hash table of currently pressed keys, so to enable key
 // holding control, then add controls to adjust if it should be reported to poll
 // events, or wait events.
@@ -112,7 +113,6 @@ entis_key_event entis_event_parse_key(xcb_generic_event_t* event,
         ev->state,
         entis_parse_keycode(ev->detail),
         entis_keycode_to_keysym(entis_parse_keycode(ev->detail), ev->state)};
-    entis_set_key_state(entis_parse_keycode(ev->detail), true);
   } else if (type == ENTIS_KEY_RELEASE) {
     xcb_key_release_event_t* ev = (xcb_key_release_event_t*)event;
     return (entis_key_event){
@@ -125,7 +125,6 @@ entis_key_event entis_event_parse_key(xcb_generic_event_t* event,
         ev->state,
         entis_parse_keycode(ev->detail),
         entis_keycode_to_keysym(entis_parse_keycode(ev->detail), ev->state)};
-    entis_set_key_state(entis_parse_keycode(ev->detail), false);
   } else {
     return (entis_key_event){ENTIS_NO_EVENT, 0, 0, 0, 0, 0, 0, 0};
   }
@@ -380,9 +379,11 @@ entis_event entis_event_parse_event(xcb_generic_event_t* event) {
   switch (entis_event_parse_type(event)) {
     case ENTIS_KEY_PRESS:
       ret.key = entis_event_parse_key(event, ENTIS_KEY_PRESS);
+      entis_set_key_state(ret.key.keysym, true);
       break;
     case ENTIS_KEY_RELEASE:
       ret.key = entis_event_parse_key(event, ENTIS_KEY_RELEASE);
+      entis_set_key_state(ret.key.keysym, false);
       break;
     case ENTIS_BUTTON_PRESS:
       ret.button = entis_event_parse_button(event, ENTIS_BUTTON_PRESS);
@@ -482,4 +483,8 @@ entis_event entis_event_no_event() {
   entis_event event;
   event.type = ENTIS_NO_EVENT;
   return event;
+}
+
+bool entis_key_state(uint16_t keysym){
+  return entis_get_key_state(keysym);
 }
