@@ -37,6 +37,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include <wchar.h>
+#include <math.h>
 
 #include <ft2build.h>
 #include <xcb/xcb.h>
@@ -187,6 +188,8 @@ uint32_t entis_height();
 void entis_size(uint32_t* width, uint32_t* height);
 void entis_clear();
 
+void entis_sleep(double s);
+
 /**  @} */
 
 bool entis_xcb();
@@ -197,6 +200,7 @@ void entis_xcb_reload_pixmap();
 void entis_xcb_copy_pixmap();
 void entis_xcb_update();
 void entis_xcb_clear();
+bool entis_xcb_window_open();
 
 entis_event entis_wait_event();
 entis_event entis_poll_event();

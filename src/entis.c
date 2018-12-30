@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <wchar.h>
+#include <math.h>
 #include <dirent.h>
 
 #include <xcb/xcb.h>
@@ -20,6 +21,7 @@ static FT_Face face_;
 static uint32_t offset_;
 
 static bool xcb_ = false;
+static bool window_open_ = false;
 static bool ft_ = false;
 static bool font_ = false;
 
@@ -146,6 +148,7 @@ bool entis_init_xcb(const char* title) {
   }
   xcb_map_window(connection_, window_);
   xcb_ = true;
+  window_open_ = true;
   entis_xcb_update();
   nanosleep(&(struct timespec){0, 3.1e7}, NULL);
   entis_clear_events();
@@ -159,6 +162,7 @@ bool entis_term_xcb() {
   xcb_destroy_window(connection_, window_);
   xcb_disconnect(connection_);
   xcb_ = false;
+  window_open_ = false;
   return true;
 }
 
@@ -211,6 +215,12 @@ void entis_clear() {
   entis_xcb_clear();
 }
 
+void entis_sleep(double sec){
+  double secs;
+  double nano = modf(sec, &secs);
+  nanosleep(&(struct timespec){(int)secs, (int)nano}, NULL);
+}
+
 bool entis_xcb() {
   if (connection_ != NULL && xcb_ != false) {
     return true;
@@ -256,6 +266,9 @@ void entis_xcb_clear() {
   xcb_poly_fill_rectangle(connection_, pixmap_, bg_gcontext_, 1,
                           (xcb_rectangle_t[]){{0, 0, width_, height_}});
 }
+bool entis_xcb_window_open(){
+  return window_open_;
+}
 
 entis_event entis_wait_event() {
   if (!xcb_) {
@@ -274,6 +287,9 @@ entis_event entis_wait_event() {
           entis_resize(event.configure.width, event.configure.height);
         }
         break;
+      case ENTIS_DESTROY_NOTIFY:
+        window_open_ = false;
+        return event;
       case ENTIS_REPARENT_NOTIFY:
       case ENTIS_MAP_NOTIFY:
       case ENTIS_NO_EXPOSURE:
@@ -300,6 +316,9 @@ entis_event entis_poll_event() {
           entis_resize(event.configure.width, event.configure.height);
         }
         break;
+      case ENTIS_DESTROY_NOTIFY:
+        window_open_ = false;
+        return event;
       case ENTIS_REPARENT_NOTIFY:
       case ENTIS_MAP_NOTIFY:
       case ENTIS_NO_EXPOSURE:

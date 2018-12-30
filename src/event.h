@@ -273,6 +273,7 @@ entis_mapping_event entis_event_parse_mapping(xcb_generic_event_t* event,
                                               enum EventType type);
 entis_event entis_event_parse_event(xcb_generic_event_t* event);
 entis_event entis_event_no_event();
+bool entis_key_state(uint16_t keysym);
 
 #ifdef __cplusplus
 }

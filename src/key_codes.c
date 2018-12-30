@@ -5,6 +5,8 @@
 
 #include "error.h"
 
+static uint64_t key_state_[8];
+
 uint16_t entis_parse_keycode(uint16_t keycode) {
   switch (keycode) {
     case 65:
@@ -229,4 +231,15 @@ uint16_t entis_keycode_to_keysym(uint16_t keycode, uint16_t state) {
     sym = keycode;
   }
   return sym;
+}
+
+bool entis_get_key_state(uint16_t keysym){
+  uint8_t group = keysym / 64;
+  return (key_state_[group] >> (keysym % 64)) & 1ull;
+}
+void entis_set_key_state(uint16_t keysym, bool state){
+  uint8_t group = keysym / 64;
+  if (((key_state_[group] >> (keysym % 64)) & 1ull) != state){
+    key_state_[group] ^= 1ull << (keysym % 64);
+  }
 }
