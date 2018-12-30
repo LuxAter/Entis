@@ -1,10 +1,10 @@
 #include "entis.h"
 
+#include <dirent.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <wchar.h>
-#include <math.h>
-#include <dirent.h>
 
 #include <xcb/xcb.h>
 
@@ -36,6 +36,9 @@ bool entis_init(uint32_t width, uint32_t height, uint32_t flags) {
   frame_buffer_ = (uint32_t**)malloc(height * sizeof(uint32_t*));
   for (uint32_t i = 0; i < height; ++i) {
     frame_buffer_[i] = (uint32_t*)malloc(width * sizeof(uint32_t));
+    for (uint32_t j = 0; j < width; ++j) {
+      frame_buffer_[i][j] = bg_;
+    }
   }
   if ((flags & ENTIS_XCB) != 0) {
     entis_init_xcb("Entis");
@@ -80,7 +83,8 @@ bool entis_init_xcb(const char* title) {
       XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS |
       XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_ENTER_WINDOW |
       XCB_EVENT_MASK_LEAVE_WINDOW | XCB_EVENT_MASK_KEY_PRESS |
-      XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_STRUCTURE_NOTIFY};
+      XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
+      XCB_EVENT_MASK_STRUCTURE_NOTIFY};
   xcb_void_cookie_t cookie = xcb_create_window(
       connection_, XCB_COPY_FROM_PARENT, window_, screen_->root, 0, 0, width_,
       height_, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT, screen_->root_visual,
@@ -195,7 +199,11 @@ void entis_resize(uint32_t width, uint32_t height) {
   frame_buffer_ = (uint32_t**)malloc(height_ * sizeof(uint32_t*));
   for (uint32_t i = 0; i < height_; ++i) {
     frame_buffer_[i] = (uint32_t*)malloc(width_ * sizeof(uint32_t));
+    for (uint32_t j = 0; j < width_; ++j) {
+      frame_buffer_[i][j] = bg_;
+    }
   }
+  entis_xcb_resize_window();
   entis_xcb_reload_pixmap();
 }
 
@@ -215,7 +223,9 @@ void entis_clear() {
   entis_xcb_clear();
 }
 
-void entis_sleep(double sec){
+uint32_t** entis_get_frame_buffer() { return frame_buffer_; }
+
+void entis_sleep(double sec) {
   double secs;
   double nano = modf(sec, &secs);
   nanosleep(&(struct timespec){(int)secs, (int)nano}, NULL);
@@ -236,6 +246,17 @@ void entis_xcb_flush() {
 
 xcb_connection_t* entis_xcb_connection() { return connection_; }
 
+void entis_xcb_resize_window() {
+  xcb_void_cookie_t cookie = xcb_configure_window(
+      connection_, window_,
+      XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+      (uint32_t[]){width_, height_});
+  xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
+  if (error_check != NULL) {
+    entis_error("(%u) Failed to resize XCB window", error_check->error_code);
+  }
+  free(error_check);
+}
 void entis_xcb_reload_pixmap() {
   xcb_free_pixmap(connection_, pixmap_);
   xcb_void_cookie_t cookie =
@@ -266,9 +287,8 @@ void entis_xcb_clear() {
   xcb_poly_fill_rectangle(connection_, pixmap_, bg_gcontext_, 1,
                           (xcb_rectangle_t[]){{0, 0, width_, height_}});
 }
-bool entis_xcb_window_open(){
-  return window_open_;
-}
+bool entis_xcb_window_open() { return window_open_; }
+void entis_xcb_close_window() { window_open_ = false; }
 
 entis_event entis_wait_event() {
   if (!xcb_) {
@@ -710,8 +730,7 @@ void entis_text(uint32_t x, uint32_t y, const char* str) {
     for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
       for (uint16_t by = 0; by < bitmap->rows; ++by) {
         if (bitmap->buffer[by * bitmap->width + bx] != 0) {
-          uint32_t base_bg = entis_get_color(
-              x + bx, y + offset + by);
+          uint32_t base_bg = entis_get_color(x + bx, y + offset + by);
           double dr = ((base_fg >> 16) & 0xFF) - ((base_bg >> 16) & 0xFF);
           double dg = ((base_fg >> 8) & 0xFF) - ((base_bg >> 8) & 0xFF);
           double db = ((base_fg)&0xFF) - ((base_bg)&0xFF);
@@ -752,8 +771,7 @@ void entis_wtext(uint32_t x, uint32_t y, const wchar_t* str) {
     for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
       for (uint16_t by = 0; by < bitmap->rows; ++by) {
         if (bitmap->buffer[by * bitmap->width + bx] != 0) {
-          uint32_t base_bg = entis_get_color(
-              x + bx, y + offset + by);
+          uint32_t base_bg = entis_get_color(x + bx, y + offset + by);
           double dr = ((base_fg >> 16) & 0xFF) - ((base_bg >> 16) & 0xFF);
           double dg = ((base_fg >> 8) & 0xFF) - ((base_bg >> 8) & 0xFF);
           double db = ((base_fg)&0xFF) - ((base_bg)&0xFF);
@@ -793,8 +811,8 @@ void entis_btext(uint32_t x, uint32_t y, const char* str) {
     for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
       for (uint16_t by = 0; by < bitmap->rows; ++by) {
         if (bitmap->buffer[by * bitmap->width + bx] != 0) {
-          uint32_t base_bg = entis_get_color(
-              x + bx, y - face_->glyph->bitmap_top + by);
+          uint32_t base_bg =
+              entis_get_color(x + bx, y - face_->glyph->bitmap_top + by);
           double dr = ((base_fg >> 16) & 0xFF) - ((base_bg >> 16) & 0xFF);
           double dg = ((base_fg >> 8) & 0xFF) - ((base_bg >> 8) & 0xFF);
           double db = ((base_fg)&0xFF) - ((base_bg)&0xFF);
@@ -834,8 +852,8 @@ void entis_wbtext(uint32_t x, uint32_t y, const wchar_t* str) {
     for (uint16_t bx = 0; bx < bitmap->width; ++bx) {
       for (uint16_t by = 0; by < bitmap->rows; ++by) {
         if (bitmap->buffer[by * bitmap->width + bx] != 0) {
-          uint32_t base_bg = entis_get_color(
-              x + bx, y - face_->glyph->bitmap_top + by);
+          uint32_t base_bg =
+              entis_get_color(x + bx, y - face_->glyph->bitmap_top + by);
           double dr = ((base_fg >> 16) & 0xFF) - ((base_bg >> 16) & 0xFF);
           double dg = ((base_fg >> 8) & 0xFF) - ((base_bg >> 8) & 0xFF);
           double db = ((base_fg)&0xFF) - ((base_bg)&0xFF);
@@ -1046,4 +1064,37 @@ uint32_t entis_get_color(uint32_t x, uint32_t y) {
     return 0;
   }
   return frame_buffer_[y][x];
+}
+
+void entis_write_png(const char* file_name) {
+  entis_write_png_from_buffer(file_name);
+}
+void entis_read_png(const char* file_name) {
+  entis_read_png_to_buffer(file_name);
+  if (xcb_) {
+    xcb_void_cookie_t cookie;
+    xcb_generic_error_t* error_check;
+    for (uint32_t y = 0; y < height_; ++y) {
+      for (uint32_t x = 0; x < width_; ++x) {
+        cookie = xcb_change_gc(connection_, fg_gcontext_, XCB_GC_FOREGROUND,
+                               (uint32_t[]){frame_buffer_[y][x]});
+        error_check = xcb_request_check(connection_, cookie);
+        if (error_check != NULL) {
+          entis_warning("(%u)Failed to change XCB fg graphics context color",
+                        error_check->error_code);
+        }
+        free(error_check);
+        xcb_poly_point(connection_, XCB_COORD_MODE_ORIGIN, pixmap_,
+                       fg_gcontext_, 1, (xcb_point_t[]){{x, y}});
+      }
+    }
+    cookie = xcb_change_gc(connection_, fg_gcontext_, XCB_GC_FOREGROUND,
+                           (uint32_t[]){fg_});
+    error_check = xcb_request_check(connection_, cookie);
+    if (error_check != NULL) {
+      entis_warning("(%u)Failed to change XCB fg graphics context color",
+                    error_check->error_code);
+    }
+    free(error_check);
+  }
 }

@@ -34,15 +34,16 @@ extern "C" {
 #endif
 
 #include <dirent.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <wchar.h>
-#include <math.h>
 
 #include <ft2build.h>
 #include <xcb/xcb.h>
 #include FT_FREETYPE_H
 
+#include "epng.h"
 #include "error.h"
 #include "event.h"
 #include "key_codes.h"
@@ -188,6 +189,8 @@ uint32_t entis_height();
 void entis_size(uint32_t* width, uint32_t* height);
 void entis_clear();
 
+uint32_t** entis_get_frame_buffer();
+
 void entis_sleep(double s);
 
 /**  @} */
@@ -196,11 +199,13 @@ bool entis_xcb();
 void entis_xcb_flush();
 xcb_connection_t* entis_xcb_connection();
 
+void entis_xcb_resize_window();
 void entis_xcb_reload_pixmap();
 void entis_xcb_copy_pixmap();
 void entis_xcb_update();
 void entis_xcb_clear();
 bool entis_xcb_window_open();
+void entis_xcb_close_window();
 
 entis_event entis_wait_event();
 entis_event entis_poll_event();
@@ -263,6 +268,8 @@ uint32_t entis_glyph_width();
 uint32_t entis_glyph_height();
 
 uint32_t entis_get_color(uint32_t x, uint32_t y);
+
+void entis_write_png(const char* file_name);
 
 #ifdef __cplusplus
 }

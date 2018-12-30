@@ -1,6 +1,7 @@
 # Core #
 
-[  ] Implement image saving
+[x] Implement image saving
+[x] Implement image loading
 [x] Implement key memory
 [  ] Documentation
 
