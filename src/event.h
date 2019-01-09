@@ -78,7 +78,7 @@ enum EventType {
  */
 typedef struct entis_key_event {
   enum EventType type;  //!< Type of event.
-  uint32_t time;        //!< Time the event occured.
+  uint32_t time;        //!< Time the event occurred.
   int16_t x, y;
   int16_t root_x, root_y;
   uint16_t state;    //!< State of the key (PRESSED/RELEASED)
@@ -94,11 +94,11 @@ typedef struct entis_key_event {
  */
 typedef struct entis_button_event {
   enum EventType type;  //!< Type of event.
-  uint32_t time;        //!< Time the event occured.
+  uint32_t time;        //!< Time the event occurred.
   int16_t x,            //!< X position of the mouse.
       y;                //!< Y position of the mouse.
   int16_t root_x, root_y;
-  uint16_t state;  //!< State the the button (PRESSED/RELEASED).
+  uint16_t state;  //!< State that the button (PRESSED/RELEASED).
   uint8_t button;  //!< The button that was pressed.
 } entis_button_event;
 /**
@@ -108,7 +108,7 @@ typedef struct entis_button_event {
  */
 typedef struct entis_motion_event {
   enum EventType type;  //!< Type of event.
-  uint32_t time;        //!< Time the event occured.
+  uint32_t time;        //!< Time the event occurred.
   int16_t x,            //!< X position of the mouse.
       y;                //!< Y position of the mouse.
   int16_t root_x, root_y;
@@ -122,14 +122,14 @@ typedef struct entis_motion_event {
  */
 typedef struct entis_crossing_event {
   enum EventType type;  //!< Type of event.
-  uint32_t time;        //!< Time the event occured.
+  uint32_t time;        //!< Time the event occurred.
   int16_t x, y;
   int16_t root_x, root_y;
   uint16_t state;
   uint8_t button;
 } entis_crossing_event;
 /**
- * @brief Window focuse event.
+ * @brief Window focus event.
  *
  * This event is when the user focuses on the window, the window losses focus.
  */
@@ -300,7 +300,7 @@ typedef struct entis_circulate_event {
   uint8_t place;
 } entis_circulate_event;
 /**
- * @brief Window circulate requrest event
+ * @brief Window circulate request event
  *
  * @todo Figure out what this event is.
  */
@@ -356,7 +356,7 @@ typedef struct entis_selection_event {
 /**
  * @brief Key mapping event
  *
- * This event is used when the user remapps the keyboard. For example when
+ * This event is used when the user remaps the keyboard. For example when
  * changing languages. This event is currently not handled internally in the key
  * event processing.
  */
@@ -369,7 +369,7 @@ typedef struct entis_mapping_event {
  * @brief Core event
  *
  * This is the core event, it consists of a type specifier, and a union of all
- * the posible event types.
+ * the possible event types.
  */
 typedef struct entis_event {
   enum EventType type;  //!< Type of the provided event.

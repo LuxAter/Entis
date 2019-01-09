@@ -143,7 +143,7 @@ bool entis_term();
  * @brief Initalize XCB module
  *
  * This function initializes the XCB module, and all requirements of the XCB
- * conneciton. This includes constructing a window, initializing a double buffer
+ * connection. This includes constructing a window, initializing a double buffer
  * for rendering, and generating graphics contexts for rendering the pixmap.
  * This function must be called before any input function, as all input function
  * are reliant on the XCB connection that is established.
@@ -166,9 +166,9 @@ bool entis_init_xcb(const char* title);
 bool entis_term_xcb();
 
 /**
- * @brief Initalizes TTF module
+ * @brief Initializes TTF module
  *
- * This function initializes the FreeType2 library that is neccesary for text
+ * This function initializes the FreeType2 library that is necessary for text
  * rendering.
  *
  * @return `true` if initialization is successful, `false` otherwise.
@@ -187,7 +187,7 @@ bool entis_term_ft();
  * @brief Resizes the entis window
  *
  * Resizes the internal framebuffer and if XCB is enabled, it will also resize
- * the XCB window. This function is called if the window is automaticaly
+ * the XCB window. This function is called if the window is automatically
  * resized.
  *
  * @param [in] width New width of the framebuffer/window.
@@ -236,7 +236,7 @@ uint32_t** entis_get_frame_buffer();
 /**
  * @brief Pauses program for given duration
  *
- * Pauses the program the given duration of seconds, the accuracy is upto
+ * Pauses the program the given duration of seconds, the accuracy is up to
  * nanoseconds.
  *
  * @param [in] s Seconds to sleep for.
@@ -260,13 +260,13 @@ bool entis_xcb();
  * @brief XCB flush
  *
  * Flushes all XCB connection calls to the X server. This must be done to render
- * everything. In most cases this is automaticaly done when events are handled.
+ * everything. In most cases this is automatically done when events are handled.
  */
 void entis_xcb_flush();
 /**
- * @brief Retreaves XCB connection
+ * @brief Retrieves XCB connection
  *
- * This retreaves the internal XCB connection.
+ * This retrieves the internal XCB connection.
  *
  * @warning This should not be used by the user. It is only intended to be used
  * for user input prompts. Avoid use of this function.
@@ -286,7 +286,7 @@ void entis_xcb_resize_window();
  * @brief Resizes the XCB pixmap
  *
  * This function should only be called after the window has been resized. It
- * changes the intrnal XCB pixmap to match the current size of the window.
+ * changes the internal XCB pixmap to match the current size of the window.
  */
 void entis_xcb_reload_pixmap();
 /**
@@ -327,7 +327,7 @@ void entis_xcb_close_window();
 
 /**
  * @defgroup Event
- * Event handeling functions
+ * Event handling functions
  * @{ */
 
 /**
@@ -335,14 +335,14 @@ void entis_xcb_close_window();
  *
  * This waits for any user input event.
  *
- * @return `entis_event` containing the corresponding user event that occured.
+ * @return `entis_event` containing the corresponding user event that occurred.
  */
 entis_event entis_wait_event();
 /**
- * @brief Returns queued user event if it exsits.
+ * @brief Returns queued user event if it exists.
  *
  * This checks for any events that are waiting in the event queue, and returns
- * the oldest event, if it exsists. Otherwise no event is returned.
+ * the oldest event, if it exists. Otherwise no event is returned.
  *
  * @return `entis_event` containing user event data.
  */
@@ -351,7 +351,7 @@ entis_event entis_poll_event();
  * @brief Waits for user event of specified type.
  *
  * Waits for a user event of a given type. This function ignores all other user
- * events utill one of the provided type is given.
+ * events until one of the provided type is given.
  *
  * @param type Type of event to wait for.
  *
@@ -372,9 +372,9 @@ entis_event entis_wait_event_type(uint32_t type);
 entis_event entis_poll_event_type(uint32_t type);
 
 /**
- * @brief Waits for a key event to occure.
+ * @brief Waits for a key event to occurs.
  *
- * Waits specifically for a key event to occure, then returns that event.
+ * Waits specifically for a key event to occurs, then returns that event.
  *
  * @return `entis_key_event` containing key event data.
  */
@@ -392,20 +392,20 @@ entis_key_event entis_poll_key();
  * @brief Checks if a key is pressed.
  *
  * Checks is a provided key is currently pressed down. This is useful as the XCB
- * key press events will only occure after the system settings for key repeate
+ * key press events will only occurs after the system settings for key repeat
  * delay. This method allows for users to access the state of any key at any
  * time.
  *
- * @param keysym Keysym to retreave the state of.
+ * @param keysym Keysym to retrieve the state of.
  *
  * @return `true` if the key is currently pressed, `false` otherwise.
  */
 bool entis_key_state(uint16_t keysym);
 
 /**
- * @brief Waits for a button event to occure.
+ * @brief Waits for a button event to occur.
  *
- * Waits specifically for a button event to occure, then returns that event.
+ * Waits specifically for a button event to occur, then returns that event.
  *
  * @return `entis_button_event` containing button event data.
  */
@@ -422,7 +422,7 @@ entis_button_event entis_poll_button();
 /**
  * @brief Clears event queue.
  *
- * Clears the internal event queue, processing the neccessary internal events.
+ * Clears the internal event queue, processing the necessary internal events.
  */
 void entis_clear_events();
 
@@ -450,7 +450,7 @@ bool entis_load_font(const char* font_name);
 /**
  * @brief Sets the font size
  *
- * Sets the font size in `pt`. Note that the size in pizels from the `pt` is
+ * Sets the font size in `pt`. Note that the size in pixels from the `pt` is
  * dependent on the dots per inch of the screen.
  *
  * @param pt Font size.
@@ -469,8 +469,8 @@ void entis_font_px(uint16_t px);
  * @brief Determines the base line of font.
  *
  * This is an internal function that is called whenever the settings of a font
- * have been changed. This determins at what `y` value is the baseline of the
- * font. Thus allowing for the characters to be propperly alighned when priting.
+ * have been changed. This determine at what `y` value is the baseline of the
+ * font. Thus allowing for the characters to be properly aligned when printing.
  */
 void entis_font_offset();
 
@@ -478,7 +478,7 @@ void entis_font_offset();
 
 /**
  * @defgroup Rendering
- * Basic color control, and primative rendering
+ * Basic color control, and primitive rendering
  * @{ */
 
 /**
@@ -497,7 +497,7 @@ void entis_color_int(uint32_t color);
  * integer values for red, green, and blue.
  *
  * @param r Red component of the color.
- * @param g Green componenet of the color.
+ * @param g Green component of the color.
  * @param b Blue component of the color.
  */
 void entis_color_rgb(uint8_t r, uint8_t g, uint8_t b);
@@ -528,7 +528,7 @@ void entis_background_int(uint32_t color);
  * integer values for red, green, and blue.
  *
  * @param r Red component of the color.
- * @param g Green componenet of the color.
+ * @param g Green component of the color.
  * @param b Blue component of the color.
  */
 void entis_background_rgb(uint8_t r, uint8_t g, uint8_t b);
@@ -545,14 +545,14 @@ void entis_background_rgb(uint8_t r, uint8_t g, uint8_t b);
 void entis_background_drgb(double r, double g, double b);
 
 /**
- * @brief Retreave the color of a given pixel from the internal buffer.
+ * @brief Retrieve the color of a given pixel from the internal buffer.
  *
- * Retreves the color of the internal buffer at a provided point in the grid.
+ * Retrieves the color of the internal buffer at a provided point in the grid.
  *
  * @param x X location of the pixel to sample.
  * @param y Y location of the pixel to sample.
  *
- * @return 32 bit(000000-FFFFFF) value represeting the color at the requested
+ * @return 32 bit(000000-FFFFFF) value representing the color at the requested
  * pixel.
  */
 uint32_t entis_get_color(uint32_t x, uint32_t y);
@@ -607,8 +607,8 @@ void entis_triangle(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
  *
  * Draws a rectangle from the provided point, with given width and height.
  *
- * @param x X position of the top left corrner of the rectangle.
- * @param y Y position of the top left corrner of the rectangle.
+ * @param x X position of the top left corner of the rectangle.
+ * @param y Y position of the top left corner of the rectangle.
  * @param width Width of the rectangle.
  * @param height Height of the rectangle.
  */
@@ -624,9 +624,9 @@ void entis_rectangle(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
  */
 void entis_circle(uint32_t cx, uint32_t cy, uint32_t r);
 /**
- * @brief Draws an arbatrairy polygon
+ * @brief Draws an arbitrary polygon
  *
- * Draws an arbatrairy closed polygon, given coordinates of points and a number
+ * Draws an arbitrary closed polygon, given coordinates of points and a number
  * of points.
  *
  * @param x X positions of points.
@@ -656,8 +656,8 @@ void entis_triangle_fill(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
  * Draws a filled rectangle from the provided point, with given width and
  * height.
  *
- * @param x X position of the top left corrner of the rectangle.
- * @param y Y position of the top left corrner of the rectangle.
+ * @param x X position of the top left corner of the rectangle.
+ * @param y Y position of the top left corner of the rectangle.
  * @param width Width of the rectangle.
  * @param height Height of the rectangle.
  */
@@ -673,11 +673,11 @@ void entis_rectangle_fill(uint32_t x, uint32_t y, uint32_t width,
  * @param cy Y position of the center of the circle.
  * @param r Radius of the circle in pixels.
  */
-void entis_circle_fill(uint32_t cx, uint32_t cy, int32_t r);
+void entis_circle_fill(uint32_t cx, uint32_t cy, uint32_t r);
 /**
- * @brief Draws a filled arbatrairy polygon
+ * @brief Draws a filled arbitrary polygon
  *
- * Draws a filled arbatrairy closed polygon, given coordinates of points and a
+ * Draws a filled arbitrary closed polygon, given coordinates of points and a
  * number of points.
  *
  * @param x X positions of points.
@@ -710,7 +710,7 @@ void entis_text(uint32_t x, uint32_t y, const char* str);
  * Renders text to the internal buffer. Note the TTF modules must be
  * initialized.
  *
- * This alternative enables rendering of unicode characters by the
+ * This alternative enables rendering of Unicode characters by the
  * use of a wide character.
  *
  * @param x X position of the left of the text.
@@ -735,7 +735,7 @@ void entis_btext(uint32_t x, uint32_t y, const char* str);
  * Renders text to the internal buffer. Note the TTF modules must be
  * initialized.
  *
- * This alternative enables rendering of unicode characters by the
+ * This alternative enables rendering of Unicode characters by the
  * use of a wide character.
  *
  * @param x X position of the left of the text.
@@ -750,7 +750,7 @@ void entis_wbtext(uint32_t x, uint32_t y, const wchar_t* str);
  * initialized.
  *
  * This variant renders mono colored text. This is slightly faster,
- * but produces less desierable results.
+ * but produces less desirable results.
  *
  * @param x X position of the left of the text.
  * @param y Y position of the top of the text.
@@ -764,9 +764,9 @@ void entis_mtext(uint32_t x, uint32_t y, const char* str);
  * initialized.
  *
  * This variant renders mono colored text. This is slightly faster,
- * but produces less desierable results.
+ * but produces less desirable results.
  *
- * This alternative enables rendering of unicode characters by the
+ * This alternative enables rendering of Unicode characters by the
  * use of a wide character.
  *
  * @param x X position of the left of the text.
@@ -781,7 +781,7 @@ void entis_wmtext(uint32_t x, uint32_t y, const wchar_t* str);
  * initialized.
  *
  * This variant renders mono colored text. This is slightly faster,
- * but produces less desierable results.
+ * but produces less desirable results.
  *
  * @param x X position of the left of the text.
  * @param y Y position of the baseline of the text.
@@ -795,9 +795,9 @@ void entis_bmtext(uint32_t x, uint32_t y, const char* str);
  * initialized.
  *
  * This variant renders mono colored text. This is slightly faster,
- * but produces less desierable results.
+ * but produces less desirable results.
  *
- * This alternative enables rendering of unicode characters by the
+ * This alternative enables rendering of Unicode characters by the
  * use of a wide character.
  *
  * @param x X position of the left of the text.
@@ -807,9 +807,9 @@ void entis_bmtext(uint32_t x, uint32_t y, const char* str);
 void entis_wbmtext(uint32_t x, uint32_t y, const wchar_t* str);
 
 /**
- * @brief Determins size of text provided string.
+ * @brief Determines size of text provided string.
  *
- * Determins the size that would be required to render a provided stirng of
+ * Determines the size that would be required to render a provided string of
  * characters.
  *
  * @param str String to measure.
@@ -818,9 +818,9 @@ void entis_wbmtext(uint32_t x, uint32_t y, const wchar_t* str);
  */
 void entis_text_size(const char* str, uint32_t* width, uint32_t* height);
 /**
- * @brief Determins the width required to render text.
+ * @brief Determines the width required to render text.
  *
- * Determins the width that would be required to render the provided string of
+ * Determines the width that would be required to render the provided string of
  * characters.
  *
  * @param str String to measure.
@@ -829,9 +829,9 @@ void entis_text_size(const char* str, uint32_t* width, uint32_t* height);
  */
 uint32_t entis_text_width(const char* str);
 /**
- * @brief Determins the height required to render text.
+ * @brief Determines the height required to render text.
  *
- * Determins the height that would be required to render the provided string of
+ * Determines the height that would be required to render the provided string of
  * characters.
  *
  * @param str String to measure.
@@ -850,9 +850,9 @@ uint32_t entis_text_height(const char* str);
  */
 void entis_char_size(char ch, uint32_t* width, uint32_t* height);
 /**
- * @brief Determins the width of a character.
+ * @brief Determines the width of a character.
  *
- * Determins the width of a provided character.
+ * Determines the width of a provided character.
  *
  * @param ch Character to measure.
  *
@@ -860,9 +860,9 @@ void entis_char_size(char ch, uint32_t* width, uint32_t* height);
  */
 uint32_t entis_char_width(char ch);
 /**
- * @brief Determins the height of a character.
+ * @brief Determines the height of a character.
  *
- * Determins the height of a provided character.
+ * Determines the height of a provided character.
  *
  * @param ch Character to measure.
  *
@@ -870,9 +870,9 @@ uint32_t entis_char_width(char ch);
  */
 uint32_t entis_char_height(char ch);
 /**
- * @brief Determins the size of a glyph.
+ * @brief Determines the size of a glyph.
  *
- * Determins the size of glyph with the current settings. Note that this is
+ * Determines the size of glyph with the current settings. Note that this is
  * constant until either the font is changed, or the size of the font is
  * changed.
  *
@@ -881,9 +881,9 @@ uint32_t entis_char_height(char ch);
  */
 void entis_glyph_size(uint32_t* width, uint32_t* height);
 /**
- * @brief Determins the width of a glyph.
+ * @brief Determines the width of a glyph.
  *
- * Determins the width of glyph with the current settings. Note that this is
+ * Determines the width of glyph with the current settings. Note that this is
  * constant until either the font is changed, or the size of the font is
  * changed.
  *
@@ -891,9 +891,9 @@ void entis_glyph_size(uint32_t* width, uint32_t* height);
  */
 uint32_t entis_glyph_width();
 /**
- * @brief Determins the height of a glyph.
+ * @brief Determines the height of a glyph.
  *
- * Determins the height of glyph with the current settings. Note that this is
+ * Determines the height of glyph with the current settings. Note that this is
  * constant until either the font is changed, or the size of the font is
  * changed.
  *
