@@ -248,8 +248,7 @@ xcb_connection_t* entis_xcb_connection() { return connection_; }
 
 void entis_xcb_resize_window() {
   xcb_void_cookie_t cookie = xcb_configure_window(
-      connection_, window_,
-      XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+      connection_, window_, XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
       (uint32_t[]){width_, height_});
   xcb_generic_error_t* error_check = xcb_request_check(connection_, cookie);
   if (error_check != NULL) {
@@ -370,6 +369,8 @@ entis_key_event entis_wait_key() {
 entis_key_event entis_poll_key() {
   return entis_poll_event_type(ENTIS_KEY_PRESS).key;
 }
+
+bool entis_key_state(uint16_t keysym) { return entis_event_key_state(keysym); }
 
 entis_button_event entis_wait_button() {
   return entis_wait_event_type(ENTIS_BUTTON_PRESS).button;

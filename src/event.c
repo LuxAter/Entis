@@ -7,11 +7,6 @@
 #include "entis.h"
 #include "key_codes.h"
 
-
-// TODO: Implement a hash table of currently pressed keys, so to enable key
-// holding control, then add controls to adjust if it should be reported to poll
-// events, or wait events.
-
 entis_event entis_event_wait_event() {
   entis_event ret;
   xcb_generic_event_t* event = xcb_wait_for_event(entis_xcb_connection());
@@ -485,6 +480,4 @@ entis_event entis_event_no_event() {
   return event;
 }
 
-bool entis_key_state(uint16_t keysym){
-  return entis_get_key_state(keysym);
-}
+bool entis_event_key_state(uint16_t keysym) { return entis_get_key_state(keysym); }
