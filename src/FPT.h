@@ -10,7 +10,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "entis.h"
+#include "../core/entis.h"
 
 static inline int G_init_graphics(int w, int h) {
   return entis_init(w, h, ENTIS_TTF | ENTIS_XCB);
