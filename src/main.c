@@ -5,45 +5,46 @@
 
 #include "entis.h"
 
-void append(char* s, char c) {
-  int len = strlen(s);
-  s[len] = c;
-  s[len + 1] = '\0';
+void setup(){
+  entis_background_int(ENTIS_DARK_WHITE);
+  entis_clear();
+}
+void draw(){
+
+}
+void destroy(){
+
 }
 
 int main(int argc, char* argv[]) {
-  entis_init("Entis", 500, 500, 0, NULL);
-  entis_set_background(ENTIS_BLACK);
-  entis_load_font("ps2p.ttf");
-  entis_set_font_size(16, 0);
+  entis_init(500, 500, ENTIS_XCB | ENTIS_TTF);
+  entis_color_int(ENTIS_WHITE);
+  entis_background_int(ENTIS_BLACK);
   entis_clear();
-  entis_set_font_color(ENTIS_WHITE);
-  entis_event event = entis_poll_event();
-  uint16_t x = 0, y = 18;
-  char str[255];
-  while (event.key.keycode != KEY_ESCAPE) {
-    event = entis_wait_event();
-    while (event.type != ENTIS_NO_EVENT) {
-      if (event.type == ENTIS_KEY_RELEASE) {
-        if (event.key.keycode != KEY_ESCAPE) {
-          append(str, event.key.keysym);
-          entis_draw_text(x, y, str);
-        } else {
-          break;
-        }
-      } else if (event.type == ENTIS_BUTTON_RELEASE) {
-        x = event.button.x;
-        y = event.button.y;
-        entis_set_font_size(20 * y / 500.0, 0);
-        printf("(%dpt)\n", (int)(20 * y / 500.0));
-        entis_segment(x, y, x + 200, y);
-        str[0] = 0;
+  bool draw = false;
+  while(entis_xcb_window_open()){
+    entis_event ev = entis_poll_event();
+    while(ev.type != ENTIS_NO_EVENT){
+      if(ev.type == ENTIS_MOTION_NOTIFY){
+        if(draw) entis_circle_fill(ev.motion.x, ev.motion.y, 5);
+      }else if(ev.type == ENTIS_BUTTON_PRESS){
+        draw = true;
+        entis_circle_fill(ev.motion.x, ev.motion.y, 5);
+      }else if(ev.type == ENTIS_BUTTON_RELEASE){
+        draw = false;
+        entis_circle_fill(ev.motion.x, ev.motion.y, 5);
+      }else if(ev.type == ENTIS_KEY_PRESS && ev.key.keycode == KEY_S){
+        entis_write_png("save.png");
+      }else if(ev.type == ENTIS_KEY_PRESS && ev.key.keycode == KEY_L){
+        entis_read_png("test.png");
+      }else if(ev.type == ENTIS_KEY_PRESS && ev.key.keycode == KEY_Q){
+        entis_xcb_close_window();
+      }else if(ev.type == ENTIS_KEY_PRESS && ev.key.keycode == KEY_R){
+        entis_color_rgb(rand() % 256, rand() % 256, rand() % 256);
       }
-      event = entis_poll_event();
+      ev = entis_poll_event();
     }
-    entis_clear_events();
-    entis_sleep(0.1);
+    entis_sleep(0.05);
   }
   entis_term();
-  return 0;
 }

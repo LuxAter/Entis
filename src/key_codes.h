@@ -76,7 +76,8 @@ enum KeyCodes {
   KEY_SCROLL_LOCK = 281,
   KEY_NUM_LOCK = 282,
   KEY_PRINT_SCREEN = 283,
-  KEY_PAUSE = 284
+  KEY_PAUSE = 284,
+  KEY_SHIFT = 340
 };
 
 enum ModifierKeys{
@@ -90,8 +91,8 @@ enum ModifierKeys{
 uint16_t entis_parse_keycode(uint16_t keycode);
 uint16_t entis_keycode_to_keysym(uint16_t keycode, uint16_t state);
 
-bool entis_key_pressed(uint16_t keycode);
-void entis_set_key_state(uint16_t keycode, bool state);
+bool entis_get_key_state(uint16_t keysym);
+void entis_set_key_state(uint16_t keysym, bool state);
 
 #ifdef __cplusplus
 }

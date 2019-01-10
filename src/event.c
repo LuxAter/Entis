@@ -9,14 +9,14 @@
 
 entis_event entis_event_wait_event() {
   entis_event ret;
-  xcb_generic_event_t* event = xcb_wait_for_event(entis_get_connection());
+  xcb_generic_event_t* event = xcb_wait_for_event(entis_xcb_connection());
   ret = entis_event_parse_event(event);
   free(event);
   return ret;
 }
 entis_event entis_event_poll_event() {
   entis_event ret;
-  xcb_generic_event_t* event = xcb_poll_for_event(entis_get_connection());
+  xcb_generic_event_t* event = xcb_poll_for_event(entis_xcb_connection());
   if (event != NULL) {
     ret = entis_event_parse_event(event);
     free(event);
@@ -76,10 +76,6 @@ enum EventType entis_event_parse_type(xcb_generic_event_t* event) {
       return ENTIS_GRAVITY_NOTIFY;
     case XCB_RESIZE_REQUEST:
       return ENTIS_RESIZE_REQUEST;
-    case XCB_CIRCULATE_NOTIFY:
-      return ENTIS_CIRCULATE_NOTIFY;
-    case XCB_CIRCULATE_REQUEST:
-      return ENTIS_CIRCULATE_REQUEST;
     case XCB_PROPERTY_NOTIFY:
       return ENTIS_PROPERTY_NOTIFY;
     case XCB_SELECTION_CLEAR:
@@ -88,8 +84,6 @@ enum EventType entis_event_parse_type(xcb_generic_event_t* event) {
       return ENTIS_SELECTION_REQUEST;
     case XCB_SELECTION_NOTIFY:
       return ENTIS_SELECTION_NOTIFY;
-    case XCB_CLIENT_MESSAGE:
-      return ENTIS_CLIENT_MESSAGE;
     case XCB_MAPPING_NOTIFY:
       return ENTIS_MAPPING_NOTIFY;
     case XCB_GE_GENERIC:
@@ -114,7 +108,6 @@ entis_key_event entis_event_parse_key(xcb_generic_event_t* event,
         ev->state,
         entis_parse_keycode(ev->detail),
         entis_keycode_to_keysym(entis_parse_keycode(ev->detail), ev->state)};
-    entis_set_key_state(entis_parse_keycode(ev->detail), true);
   } else if (type == ENTIS_KEY_RELEASE) {
     xcb_key_release_event_t* ev = (xcb_key_release_event_t*)event;
     return (entis_key_event){
@@ -127,7 +120,6 @@ entis_key_event entis_event_parse_key(xcb_generic_event_t* event,
         ev->state,
         entis_parse_keycode(ev->detail),
         entis_keycode_to_keysym(entis_parse_keycode(ev->detail), ev->state)};
-    entis_set_key_state(entis_parse_keycode(ev->detail), false);
   } else {
     return (entis_key_event){ENTIS_NO_EVENT, 0, 0, 0, 0, 0, 0, 0};
   }
@@ -326,24 +318,6 @@ entis_configure_request_event entis_event_parse_configure_request(
         ENTIS_NO_EVENT, 0, 0, 0, 0, 0, 0, 0, 0};
   }
 }
-entis_circulate_event entis_event_parse_circulate(xcb_generic_event_t* event,
-                                                  enum EventType type) {
-  if (type == ENTIS_CIRCULATE_NOTIFY) {
-    xcb_circulate_notify_event_t* ev = (xcb_circulate_notify_event_t*)event;
-    return (entis_circulate_event){type, ev->place};
-  } else {
-    return (entis_circulate_event){ENTIS_NO_EVENT, 0};
-  }
-}
-entis_circulate_request_event entis_event_parse_circulate_request(
-    xcb_generic_event_t* event, enum EventType type) {
-  if (type == ENTIS_CIRCULATE_REQUEST) {
-    xcb_circulate_request_event_t* ev = (xcb_circulate_request_event_t*)event;
-    return (entis_circulate_request_event){type, ev->place};
-  } else {
-    return (entis_circulate_request_event){ENTIS_NO_EVENT, 0};
-  }
-}
 entis_property_event entis_event_parse_property(xcb_generic_event_t* event,
                                                 enum EventType type) {
   if (type == ENTIS_PROPERTY_NOTIFY) {
@@ -400,9 +374,11 @@ entis_event entis_event_parse_event(xcb_generic_event_t* event) {
   switch (entis_event_parse_type(event)) {
     case ENTIS_KEY_PRESS:
       ret.key = entis_event_parse_key(event, ENTIS_KEY_PRESS);
+      entis_set_key_state(ret.key.keysym, true);
       break;
     case ENTIS_KEY_RELEASE:
       ret.key = entis_event_parse_key(event, ENTIS_KEY_RELEASE);
+      entis_set_key_state(ret.key.keysym, false);
       break;
     case ENTIS_BUTTON_PRESS:
       ret.button = entis_event_parse_button(event, ENTIS_BUTTON_PRESS);
@@ -474,14 +450,6 @@ entis_event entis_event_parse_event(xcb_generic_event_t* event) {
     case ENTIS_RESIZE_REQUEST:
       ret.resize = entis_event_parse_resize(event, ENTIS_RESIZE_REQUEST);
       break;
-    case ENTIS_CIRCULATE_NOTIFY:
-      ret.circulate =
-          entis_event_parse_circulate(event, ENTIS_CIRCULATE_NOTIFY);
-      break;
-    case ENTIS_CIRCULATE_REQUEST:
-      ret.circulate_request =
-          entis_event_parse_circulate_request(event, ENTIS_CIRCULATE_REQUEST);
-      break;
     case ENTIS_PROPERTY_NOTIFY:
       ret.property = entis_event_parse_property(event, ENTIS_PROPERTY_NOTIFY);
       break;
@@ -506,3 +474,10 @@ entis_event entis_event_parse_event(xcb_generic_event_t* event) {
   }
   return ret;
 }
+entis_event entis_event_no_event() {
+  entis_event event;
+  event.type = ENTIS_NO_EVENT;
+  return event;
+}
+
+bool entis_event_key_state(uint16_t keysym) { return entis_get_key_state(keysym); }

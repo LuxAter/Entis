@@ -3,9 +3,9 @@
 *.log
 *.swp
 build/*
-{{Docs}}/html/*
-{{Docs}}/latex/*
-{{Docs}}/xml/*
+docs/html/*
+docs/latex/*
+docs/xml/*
 entis
 unit-test
 .gdb_history

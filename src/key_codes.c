@@ -3,7 +3,9 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-bool key_state[300];
+#include "error.h"
+
+static uint64_t key_state_[8];
 
 uint16_t entis_parse_keycode(uint16_t keycode) {
   switch (keycode) {
@@ -11,6 +13,8 @@ uint16_t entis_parse_keycode(uint16_t keycode) {
       return KEY_SPACE;
     case 48:
       return KEY_APOSTROPHE;
+    case 50:
+      return KEY_SHIFT;
     case 59:
       return KEY_COMMA;
     case 20:
@@ -19,6 +23,8 @@ uint16_t entis_parse_keycode(uint16_t keycode) {
       return KEY_PERIOD;
     case 61:
       return KEY_SLASH;
+    case 62:
+      return KEY_SHIFT;
     case 19:
       return KEY_0;
     case 10:
@@ -136,6 +142,7 @@ uint16_t entis_parse_keycode(uint16_t keycode) {
     case 255:
       return KEY_PRINT_SCREEN;
     default:
+      entis_warning("Unknown key \'%d\'", keycode);
       return 0;
   }
   return keycode;
@@ -218,15 +225,21 @@ uint16_t entis_keycode_to_keysym(uint16_t keycode, uint16_t state) {
     } else {
       sym = keycode;
     }
+  } else if (keycode == 340) {
+    return 0;
   } else {
     sym = keycode;
   }
   return sym;
 }
 
-bool entis_key_pressed(uint16_t keycode){
-  return key_state[keycode];
+bool entis_get_key_state(uint16_t keysym){
+  uint8_t group = keysym / 64;
+  return (key_state_[group] >> (keysym % 64)) & 1ull;
 }
-void entis_set_key_state(uint16_t keycode, bool state){
-  key_state[keycode] = state;
+void entis_set_key_state(uint16_t keysym, bool state){
+  uint8_t group = keysym / 64;
+  if (((key_state_[group] >> (keysym % 64)) & 1ull) != state){
+    key_state_[group] ^= 1ull << (keysym % 64);
+  }
 }
