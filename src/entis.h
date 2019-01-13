@@ -282,6 +282,14 @@ xcb_connection_t* entis_xcb_connection();
  * called by `entis_resize`, as that will also resize the framebuffer.
  */
 void entis_xcb_resize_window();
+
+/**
+ * @brief Toggles XCB window fullscreen.
+ *
+ * This function toggles the XCB window from being fullscreen, to normalized.
+ * This will automattiacly resize the window and framebuffer accordingly.
+ */
+void entis_xcb_toggle_fullscreen();
 /**
  * @brief Resizes the XCB pixmap
  *
@@ -588,6 +596,16 @@ void entis_points(uint32_t* x, uint32_t* y, uint32_t n);
  */
 void entis_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1);
 /**
+ * @brief Draws a horizontal line between two x values.
+ *
+ * Draws a horizontal line between two X values at a provided Y position.
+ *
+ * @param x0 X coordinate of starting point.
+ * @param x1 X coordinate of entding point.
+ * @param y Y coordinate of both ponts.
+ */
+void entis_horizontal_line(int32_t x0, int32_t x1, int32_t y);
+/**
  * @brief Draws a triangle between three points.
  *
  * Draws a triangle between three provided points. This is the same as drawing
@@ -673,7 +691,7 @@ void entis_rectangle_fill(uint32_t x, uint32_t y, uint32_t width,
  * @param cy Y position of the center of the circle.
  * @param r Radius of the circle in pixels.
  */
-void entis_circle_fill(uint32_t cx, uint32_t cy, int32_t r);
+void entis_circle_fill(uint32_t cx, uint32_t cy, uint32_t r);
 /**
  * @brief Draws a filled arbitrary polygon
  *

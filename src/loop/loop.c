@@ -3,6 +3,7 @@
 #include "../entis.h"
 
 uint32_t width = 500, height = 500;
+uint32_t mouseX = 0, mouseY = 0;
 
 void size(uint32_t w, uint32_t h) {
   entis_resize(w, h);

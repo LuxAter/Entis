@@ -21,6 +21,7 @@ static FT_Face face_;
 static uint32_t offset_;
 
 static bool xcb_ = false;
+static bool xcb_fullscreen_ = false;
 static bool window_open_ = false;
 static bool ft_ = false;
 static bool font_ = false;
@@ -256,6 +257,47 @@ void entis_xcb_resize_window() {
   }
   free(error_check);
 }
+
+void entis_xcb_toggle_fullscreen() {
+  xcb_fullscreen_ = !xcb_fullscreen_;
+
+  xcb_intern_atom_cookie_t wm_state_ck =
+      xcb_intern_atom(connection_, 0, 13, "_NET_WM_STATE");
+  xcb_intern_atom_cookie_t wm_state_fs_ck =
+      xcb_intern_atom(connection_, 0, 24, "_NET_WM_STATE_FULLSCREEN");
+
+  xcb_client_message_event_t ev;
+  ev.response_type = XCB_CLIENT_MESSAGE;
+  xcb_generic_error_t* error_check;
+  xcb_intern_atom_reply_t* reply =
+      xcb_intern_atom_reply(connection_, wm_state_ck, &error_check);
+  if (error_check) {
+    entis_error("(%u) Cannot set XCB screen", error_check->error_code);
+  }
+  free(error_check);
+  ev.type = reply->atom;
+  free(reply);
+  ev.format = 32;
+  ev.window = window_;
+  ev.data.data32[0] = 2;
+  reply = xcb_intern_atom_reply(connection_, wm_state_fs_ck, &error_check);
+  if (error_check) {
+    entis_error("(%u) Cannot set XCB screen", error_check->error_code);
+  }
+  free(error_check);
+  /* ev.data.data32[1] = getReplyAtomFromCookie(wm_state_fs_ck); */
+  ev.data.data32[1] = reply->atom;
+  free(reply);
+  ev.data.data32[2] = XCB_ATOM_NONE;
+  ev.data.data32[3] = 0;
+  ev.data.data32[4] = 0;
+
+  xcb_send_event(
+      connection_, 1, window_,
+      XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,
+      (const char*)(&ev));
+}
+
 void entis_xcb_reload_pixmap() {
   xcb_free_pixmap(connection_, pixmap_);
   xcb_void_cookie_t cookie =
@@ -334,7 +376,7 @@ entis_event entis_poll_event() {
             event.configure.height != height_) {
           entis_resize(event.configure.width, event.configure.height);
         }
-        break;
+        return event;
       case ENTIS_DESTROY_NOTIFY:
         window_open_ = false;
         return event;
@@ -586,6 +628,12 @@ void entis_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1) {
   }
 }
 
+void entis_horizontal_line(int32_t x0, int32_t x1, int32_t y) {
+  for (int32_t x = x0; x <= x1; ++x) {
+    entis_point(x, y);
+  }
+}
+
 void entis_triangle(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
                     uint32_t x2, uint32_t y2) {
   entis_line(x0, y0, x1, y1);
@@ -606,12 +654,12 @@ void entis_circle(uint32_t cx, uint32_t cy, uint32_t r) {
   int32_t err = (x * x) - (r * r) + r;
   while (x >= y) {
     entis_point(cx + x, cy + y);
+    entis_point(cx - x, cy + y);
     entis_point(cx + y, cy + x);
     entis_point(cx - y, cy + x);
-    entis_point(cx - x, cy + y);
-    entis_point(cx - x, cy - y);
     entis_point(cx - y, cy - x);
     entis_point(cx + y, cy - x);
+    entis_point(cx - x, cy - y);
     entis_point(cx + x, cy - y);
     if (err <= 0) {
       y++;
@@ -644,14 +692,21 @@ void entis_rectangle_fill(uint32_t x, uint32_t y, uint32_t width,
   }
 }
 
-void entis_circle_fill(uint32_t cx, uint32_t cy, int32_t r) {
-  int32_t rsq = r * r;
-  for (int32_t y = -r; y <= r; ++y) {
-    int32_t ysq = y * y;
-    for (int32_t x = -r; x <= r; ++x) {
-      if ((x * x) + ysq < rsq) {
-        entis_point(cx + x, cy + y);
-      }
+void entis_circle_fill(uint32_t cx, uint32_t cy, uint32_t r) {
+  int32_t x = r - 1;
+  int32_t y = 0;
+  int32_t err = (x * x) - (r * r) + r;
+  while (x >= y) {
+    entis_horizontal_line(cx - x, cx + x, cy + y);
+    entis_horizontal_line(cx - y, cx + y, cy + x);
+    entis_horizontal_line(cx - y, cx + y, cy - x);
+    entis_horizontal_line(cx - x, cx + x, cy - y);
+    if (err <= 0) {
+      y++;
+      err += 2 * y + 1;
+    } else {
+      x--;
+      err -= x * 2 + 1;
     }
   }
 }
