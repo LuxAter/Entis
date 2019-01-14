@@ -195,6 +195,13 @@ bool entis_term_ft();
  */
 void entis_resize(uint32_t width, uint32_t height);
 /**
+ * @brief Toggles fullscreen window.
+ *
+ * This is used to toggle fullscreen rendering of the window. This will
+ * appropriatly resize the internal framebuffer, and the XCB window.
+ */
+void entis_toggle_fullscreen();
+/**
  * @brief Gets the width of the framebuffer/window.
  *
  * @return The width of the framebuffer.

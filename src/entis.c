@@ -208,6 +208,8 @@ void entis_resize(uint32_t width, uint32_t height) {
   entis_xcb_reload_pixmap();
 }
 
+void entis_toggle_fullscreen() { entis_xcb_toggle_fullscreen(); }
+
 uint32_t entis_width() { return width_; }
 uint32_t entis_height() { return height_; }
 void entis_size(uint32_t* width, uint32_t* height) {
@@ -228,7 +230,7 @@ uint32_t** entis_get_frame_buffer() { return frame_buffer_; }
 
 void entis_sleep(double sec) {
   double secs;
-  double nano = modf(sec, &secs);
+  double nano = modf(sec, &secs) * 1e9;
   nanosleep(&(struct timespec){(int)secs, (int)nano}, NULL);
 }
 
