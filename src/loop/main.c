@@ -30,6 +30,12 @@ void process_event(entis_event ev) {
         button_press(ev.button.button);
       }
       break;
+    case ENTIS_ENTER_NOTIFY:
+      focused = true;
+      break;
+    case ENTIS_LEAVE_NOTIFY:
+      focused = false;
+      break;
     default:
       break;
   }
@@ -56,7 +62,7 @@ int main(int argc, char* argv[]) {
   clock_t delta_time = 0;
   while (entis_xcb_window_open()) {
     clock_t start = clock();
-    if (draw) {
+    if (loop_ && draw) {
       draw();
     }
     entis_event ev = entis_poll_event();
@@ -64,7 +70,7 @@ int main(int argc, char* argv[]) {
       process_event(ev);
       ev = entis_poll_event();
     }
-    entis_sleep(0.01);
+    entis_sleep(sleep_time_);
     delta_time += clock() - start;
     frames++;
     if (clock_to_ms(delta_time) > 1000.0) {
