@@ -69,7 +69,7 @@ ENTIS_FILES=src/main.c
 ENTIS_OBJS=$(ENTIS_FILES:%=$(ROOT)/$(BUILD)/%.o)
 -include $(ENTIS_OBJS:.o=.d)
 
-build-entis: build-libentis.a pre-entis $(ENTIS)
+build-entis: build-libentis_loop.a build-libentis.a pre-entis $(ENTIS)
 	$(call complete_target,$(shell basename $(ENTIS)))
 
 clean-entis:
@@ -82,9 +82,9 @@ pre-entis:
 $(ENTIS): $(ENTIS_OBJS) FORCE
 	$(call print_link_exe,$(shell basename $(ENTIS)))
 ifdef $(PRODUCTION)
-	$(CC) $(ENTIS_OBJS) $(LIBENTIS.A) $(LINK) $(COMMON_INCLUDE) -o $(ENTIS)
+	$(CC) $(ENTIS_OBJS) $(LIBENTIS_LOOP.A) $(LINK) $(COMMON_INCLUDE) -o $(ENTIS)
 else
-	$(CC) $(ENTIS_OBJS) $(LIBENTIS.A) $(ROOT)/build/libfreetype.a/lib/libfreetype.a  $(ROOT)/build/libpng.a/lib/libpng.a $(LINK) $(COMMON_INCLUDE) -o $(ENTIS)
+	$(CC) $(ENTIS_OBJS) $(LIBENTIS_LOOP.A) $(ROOT)/build/libfreetype.a/lib/libfreetype.a  $(ROOT)/build/libpng.a/lib/libpng.a $(LINK) $(COMMON_INCLUDE) -o $(ENTIS)
 endif
 
 install-entis: build-entis
@@ -97,10 +97,52 @@ uninstall-entis:
 	if [ -e "$(INSTALL_PATH)/bin/$(shell basename $(ENTIS))" ]; then rm $(INSTALL_PATH)/bin/$(shell basename $(ENTIS)); fi
 
 # }}}
+# LIBENTIS_LOOP.A {{{
+
+LIBENTIS_LOOP.A=build/libentis_loop.a
+LIBENTIS_LOOP.A_FILES=$(shell find "src/" -name "*.c")
+LIBENTIS_LOOP.A_OBJS=$(LIBENTIS_LOOP.A_FILES:%=$(ROOT)/$(BUILD)/%.o)
+-include $(LIBENTIS_LOOP.A_OBJS:.o=.d)
+
+build-libentis_loop.a: build-libpng.a build-libfreetype.a pre-libentis_loop.a $(LIBENTIS_LOOP.A)
+	$(call complete_target,$(shell basename $(LIBENTIS_LOOP.A)))
+
+clean-libentis_loop.a: clean-libpng.a clean-libfreetype.a
+	$(call clean_target,$(shell basename $(LIBENTIS_LOOP.A)))
+	if [ -e "$(LIBENTIS_LOOP.A)" ]; then rm $(LIBENTIS_LOOP.A); fi
+
+pre-libentis_loop.a:
+	$(call scan_target,$(shell basename $(LIBENTIS_LOOP.A)))
+
+$(LIBENTIS_LOOP.A): $(LIBENTIS_LOOP.A_OBJS) FORCE
+	$(call print_link_lib,$(shell basename $(LIBENTIS_LOOP.A)))
+	ar rcs $@ $(LIBENTIS_LOOP.A_OBJS)
+ifdef $(PRODUCTION)
+	printf "C\n"
+	mkdir -p $(ROOT)/tmp/libpng.a && cd $(ROOT)/tmp/libpng.a && ar x /home/arden/Programming/c/entis/build/libpng.a/lib/libpng.a && ar qc $(ROOT)/$@ $(ROOT)/tmp/libpng.a/*.o && rm -rf $(ROOT)/tmp/libpng.a
+	mkdir -p $(ROOT)/tmp/libfreetype.a && cd $(ROOT)/tmp/libfreetype.a && ar x /home/arden/Programming/c/entis/build/libfreetype.a/lib/libfreetype.a && ar qc $(ROOT)/$@ $(ROOT)/tmp/libfreetype.a/*.o && rm -rf $(ROOT)/tmp/libfreetype.a
+	rm $(ROOT)/tmp -rf
+endif
+
+install-libentis_loop.a: build-libentis_loop.a
+	$(call install_target,$(shell basename $(LIBENTIS_LOOP.A)))
+	mkdir -p $(INSTALL_PATH)/lib/
+	mkdir -p $(INSTALL_PATH)/include/$(NAME)/
+	cp $(LIBENTIS_LOOP.A) $(INSTALL_PATH)/lib
+	if [ ! -z "$(INCLUDE_DIR)" ]; then cp -R $(INCLUDE_DIR)/ $(INSTALL_PATH)/include/$(NAME)/; fi
+	if [ ! -z "$(shell find $(SOURCE_DIR) -name "*.h")" ]; then cd $(SOURCE_DIR) && cp --parents $(sehll cd $(SOURCE_DIR) && find . -name "*.h") $(INSTALL_PATH)/include/$(NAME); fi
+	if [ ! -z "$(shell find $(SOURCE_DIR) -name "*.hpp")" ]; then cd $(SOURCE_DIR) && cp --parents $(sehll cd $(SOURCE_DIR) && find . -name "*.hpp") $(INSTALL_PATH)/include/$(NAME); fi
+
+uninstall-libentis_loop.a:
+	$(call uninstall_target,$(shell basename $(LIBENTIS_LOOP.A)))
+	if [ ! -e "$(INSTALL_PATH)/lib/$(shell basename $(LIBENTIS_LOOP.A))" ]; then rm $(INSTALL_PATH)/lib/$(shell basename $(LIBENTIS_LOOP.A)); fi
+	if [ ! -e "$(INSTALL_PATH)/include/$(NAME)" ]; then rm $(INSTALL_PATH)/include/$(NAME) -r; fi
+
+# }}}
 # LIBENTIS.A {{{
 
 LIBENTIS.A=build/libentis.a
-LIBENTIS.A_FILES=$(filter-out src/main.c, $(shell find "src/" -name "*.c"))
+LIBENTIS.A_FILES=$(filter-out src/main.c $(wildcard src/loop/*.c), $(shell find "src/" -name "*.c"))
 LIBENTIS.A_OBJS=$(LIBENTIS.A_FILES:%=$(ROOT)/$(BUILD)/%.o)
 -include $(LIBENTIS.A_OBJS:.o=.d)
 
@@ -159,8 +201,8 @@ pre-libpng.a:
 # LIBFREETYPE.A {{{
 
 build-libfreetype.a: pre-libfreetype.a
-	$(call print_run_cmd,autogen.sh) && cd external/freetype2 && ./autogen.sh
-	$(call print_run_cmd,configure) && cd external/freetype2 && ./configure --prefix=/home/arden/Programming/c/entis/build/libfreetype.a --without-harfbuzz --without-bzip2 --without-zlib --without-png
+	# $(call print_run_cmd,autogen.sh) && cd external/freetype2 && ./autogen.sh
+	# $(call print_run_cmd,configure) && cd external/freetype2 && ./configure --prefix=/home/arden/Programming/c/entis/build/libfreetype.a --without-harfbuzz --without-bzip2 --without-zlib --without-png
 	if [ ! -d "/home/arden/Programming/c/entis/build/libfreetype.a" ]; then $(call print_run_cmd,make) && cd external/freetype2 && make install; fi
 	$(call complete_target,libfreetype.a)
 
