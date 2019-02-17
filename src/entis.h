@@ -6,7 +6,9 @@ extern "C" {
 #endif
 
 #include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -25,16 +27,33 @@ enum EntisInitFlags {
   ENTIS_PNG = 1 << 3,
   ENTIS_ALL = 1 << 0 | 1 << 1 | 1 << 2 | 1 << 3,
 };
+enum EntisColors {
+  ENTIS_BLACK = 0x000000,
+  ENTIS_RED = 0xff0000,
+  ENTIS_GREEN = 0x00ff00,
+  ENTIS_BLUE = 0x0000ff,
+  ENTIS_YELLOW = 0xffff00,
+  ENTIS_MAGENTA = 0xff00ff,
+  ENTIS_CYAN = 0x00ffff,
+  ENTIS_WHITE = 0xffffff,
+  ENTIS_DARK_RED = 0x800000,
+  ENTIS_DARK_GREEN = 0x008000,
+  ENTIS_DARK_BLUE = 0x000080,
+  ENTIS_DARK_YELLOW = 0x808000,
+  ENTIS_DARK_MAGENTA = 0x800080,
+  ENTIS_DARK_CYAN = 0x008080,
+  ENTIS_DARK_WHITE = 0x808080
+};
 
 bool entis_init(unsigned width, unsigned height, unsigned flags);
 bool entis_term();
+void entis_set_flag(unsigned flag);
+bool entis_get_flag(unsigned flag);
 
-void entis_resize(unsigned width, unsigned height);
-void entis_toggle_fullscreen();
+bool entis_resize(unsigned width, unsigned height);
 unsigned entis_width();
 unsigned entis_height();
 void entis_size(unsigned* width, unsigned* height);
-void entis_clear();
 
 void entis_sleep(double s);
 
@@ -44,6 +63,8 @@ void entis_color_drgb(double r, double g, double b);
 void entis_background_int(uint32_t color);
 void entis_background_rgb(uint8_t r, uint8_t g, uint8_t b);
 void entis_background_drgb(double r, double g, double b);
+
+bool entis_write_bmp(const char* file_name);
 
 #ifdef cplusplus__
 }
@@ -57,6 +78,23 @@ enum InitFlags {
   TTF = ENTIS_TTF,
   PNG = ENTIS_PNG,
   ALL = ENTIS_ALL,
+};
+enum Colors {
+  BLACK = 0x000000,
+  RED = 0xff0000,
+  GREEN = 0x00ff00,
+  BLUE = 0x0000ff,
+  YELLOW = 0xffff00,
+  MAGENTA = 0xff00ff,
+  CYAN = 0x00ffff,
+  WHITE = 0xffffff,
+  DARK_RED = 0x800000,
+  DARK_GREEN = 0x008000,
+  DARK_BLUE = 0x000080,
+  DARK_YELLOW = 0x808000,
+  DARK_MAGENTA = 0x800080,
+  DARK_CYAN = 0x008080,
+  DARK_WHITE = 0x808080
 };
 inline bool init(unsigned width, unsigned height, unsigned flags = ALL) {
   return entis_init(width, height, flags);
