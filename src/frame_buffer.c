@@ -141,34 +141,116 @@ void entis_fb_line(unsigned x0, unsigned y0, unsigned x1, unsigned y1) {
     }
   }
 }
-void entis_fb_iline(int x0, int y0, int x1, int y1) {}
-void entis_fb_dline(double x0, double y0, double x1, double y1) {}
-
-void entis_fb_tri(unsigned x0, unsigned y0, unsigned x1, unsigned y1,
-                  unsigned x2, unsigned y2) {}
-void entis_fb_itri(int x0, int y0, int x1, int y1, int x2, int y2) {}
-void entis_fb_dtri(double x0, double y0, double x1, double y1, double x2,
-                   double y2) {}
-
-void entis_fb_rect(unsigned x, unsigned y, unsigned w, unsigned h) {
-  for (unsigned i = x; i < x + w; ++i) {
-    for (unsigned j = y; j < y + h; ++j) {
-      frame_buffer_[j][i] = fg_;
+void entis_fb_iline(int x0, int y0, int x1, int y1) {
+  if ((x0 < 0 && x1 < 0) || (y0 < 0 && y1 < 0) ||
+      (x0 >= width_ && x1 >= width_) || (y0 >= height_ && y1 >= height_)) {
+    return;
+  } else if (x0 < 0 || x1 < 0 || y0 < 0 || y1 < 0) {
+    if (x0 < 0) {
+      x0 = (double)(y1 - y0) / (x1 - x0) * -x0 + y0;
+    } else {
+      x1 = (double)(y1 - y0) / (x1 - x0) * -x0 + y0;
+    }
+    if (y0 < 0) {
+      y0 = (double)(x1 - x0) / (y1 - y0) * -y0 + x0;
+    } else {
+      y1 = (double)(x1 - x0) / (y1 - y0) * -y0 + x0;
     }
   }
+  entis_fb_line(x0, y0, x1, y1);
 }
-void entis_fb_irect(int x, int y, int w, int h) {}
-void entis_fb_drect(double x, double y, double w, double h) {}
+void entis_fb_dline(double x0, double y0, double x1, double y1) {
+  entis_fb_iline((int)x0, (int)y0, (int)x1, (int)y1);
+}
+
+void entis_fb_tri(unsigned x0, unsigned y0, unsigned x1, unsigned y1,
+                  unsigned x2, unsigned y2) {
+  entis_fb_line(x0, y0, x1, y1);
+  entis_fb_line(x1, y1, x2, y2);
+  entis_fb_line(x2, y2, x0, y0);
+}
+void entis_fb_itri(int x0, int y0, int x1, int y1, int x2, int y2) {
+  entis_fb_iline(x0, y0, x1, y1);
+  entis_fb_iline(x1, y1, x2, y2);
+  entis_fb_iline(x2, y2, x0, y0);
+}
+void entis_fb_dtri(double x0, double y0, double x1, double y1, double x2,
+                   double y2) {
+  entis_fb_dline(x0, y0, x1, y1);
+  entis_fb_dline(x1, y1, x2, y2);
+  entis_fb_dline(x2, y2, x0, y0);
+}
+
+void entis_fb_rect(unsigned x, unsigned y, unsigned w, unsigned h) {
+  entis_fb_line(x, y, x + w, y);
+  entis_fb_line(x, y, x, y + h);
+  entis_fb_line(x + w, y, x + w, y + h);
+  entis_fb_line(x, y + h, x + w, y + y);
+}
+void entis_fb_irect(int x, int y, int w, int h) {
+  entis_fb_iline(x, y, x + w, y);
+  entis_fb_iline(x, y, x, y + h);
+  entis_fb_iline(x + w, y, x + w, y + h);
+  entis_fb_iline(x, y + h, x + w, y + y);
+}
+void entis_fb_drect(double x, double y, double w, double h) {
+  entis_fb_dline(x, y, x + w, y);
+  entis_fb_dline(x, y, x, y + h);
+  entis_fb_dline(x + w, y, x + w, y + h);
+  entis_fb_dline(x, y + h, x + w, y + y);
+}
 
 void entis_fb_polygon(unsigned cx, unsigned cy, unsigned sides) {}
 void entis_fb_ipolygon(int cx, int cy, int sides) {}
 void entis_fb_dpolygon(double cx, double cy, double sides) {}
 
-void entis_fb_circle(unsigned cx, unsigned cy, unsigned r) {}
-void entis_fb_icircle(int cx, int cy, int r) {}
-void entis_fb_dcircle(double cx, double cy, double r) {}
+void entis_fb_circle(unsigned cx, unsigned cy, unsigned r) {
+  unsigned x = r - 1;
+  unsigned y = 0;
+  int err = (x * x) - (r * r) + r;
+  while (x >= y) {
+    if (cx + x < width_ && cy + y < height_)
+      frame_buffer_[cy + y][cx + x] = fg_;
+    if (cx - x < width_ && cy + y < height_)
+      frame_buffer_[cy + y][cx - x] = fg_;
+    if (cx + y < width_ && cy + x < height_)
+      frame_buffer_[cy + x][cx + y] = fg_;
+    if (cx - y < width_ && cy + x < height_)
+      frame_buffer_[cy + x][cx - y] = fg_;
+    if (cx - y < width_ && cy - x < height_)
+      frame_buffer_[cy - x][cx - y] = fg_;
+    if (cx + y < width_ && cy - x < height_)
+      frame_buffer_[cy - x][cx + y] = fg_;
+    if (cx - x < width_ && cy - y < height_)
+      frame_buffer_[cy - y][cx - x] = fg_;
+    if (cx + x < width_ && cy - y < height_)
+      frame_buffer_[cy - y][cx + x] = fg_;
+    if (err <= 0) {
+      y++;
+      err += 2 * y + 1;
+    } else {
+      x--;
+      err -= x * 2 + 1;
+    }
+  }
+}
+void entis_fb_icircle(int cx, int cy, int r) {
+  if (!(cx < 0 || cy < 0 || cx >= width_ || cy >= height_)) {
+    entis_fb_circle((unsigned)cx, (unsigned)cy, (unsigned)(r > 0 ? r : -r));
+  }
+}
+void entis_fb_dcircle(double cx, double cy, double r) {
+  if (!(cx < 0 || cy < 0 || cx >= width_ || cy >= height_)) {
+    entis_fb_circle((unsigned)cx, (unsigned)cy, (unsigned)(r > 0 ? r : -r));
+  }
+}
 
-void entis_fb_poly(unsigned* x, unsigned* y, unsigned n) {}
+void entis_fb_poly(unsigned* x, unsigned* y, unsigned n) {
+  for (unsigned i = 1; i < n; ++i) {
+    entis_fb_line(x[i - 1], y[i - 1], x[i], y[i]);
+  }
+  entis_fb_line(x[0], y[0], x[n - 1], y[n - 1]);
+}
 void entis_fb_ipoly(int* x, int* y, unsigned n) {}
 void entis_fb_dpoly(double* x, double* y, unsigned n) {}
 
