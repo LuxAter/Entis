@@ -1,4 +1,8 @@
-entis.c
+c/binding.c
+c/color.c
+c/entis.c
+c/event.c
+c/key_codes.c
 pyentis.egg-info/PKG-INFO
 pyentis.egg-info/SOURCES.txt
 pyentis.egg-info/dependency_links.txt
